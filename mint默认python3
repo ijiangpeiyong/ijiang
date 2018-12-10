@@ -1,0 +1,2 @@
+rm /usr/bin/python
+ln -s /usr/local/bin/python3.x  /usr/bin/python
