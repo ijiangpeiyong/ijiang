@@ -20,7 +20,7 @@ class BRAIN:
         self.sizeMemory=3000
         self.sizeBatch=32
 
-        self.numAssign=500
+        self.numAssignTE=500
 
         self.outputNNGraph=True
 
@@ -29,7 +29,20 @@ class BRAIN:
 
         self.BuildNet()
 
-        
+
+        # Get all variables in the netTarget and netEval
+        paramsTarget=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netTarget')
+        paramsEval=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netEval')
+
+        with tf.variable_scope('assignTF'):
+            self.assignTE=[tf.assign(t,e) for t,e in zip(paramsTarget,paramsEval)]
+
+        self.sess=tf.Session()
+        if self.outputNNGraph:
+            tf.summary.FileWriter("logs/",self.sess.graph)
+
+        self.sess.run(tf.global_variables_initializer())
+
 
 
     def BuildNet(self):
