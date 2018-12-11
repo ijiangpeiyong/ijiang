@@ -2,6 +2,9 @@
 
 import numpy as np
 import tensorflow as tf
+import time
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 class BRAIN:
@@ -11,7 +14,7 @@ class BRAIN:
 
         self.factorGreedyEpsilon=0.9
         self.factorGreedyEpsilonInc=0.001
-        self.factorGreedyEpsilonMac=0.95
+        self.factorGreedyEpsilonMax=0.95
 
         self.factorRewardDecayGamma=0.9
 
@@ -26,6 +29,10 @@ class BRAIN:
 
         self.memory=np.zeros((self.sizeMemory,self.numFeature*2+2))
 
+        self.counterMemory=0
+        self.counterLearn=0
+
+        self.histLoss=[]
 
         self.BuildNet()
 
@@ -34,14 +41,20 @@ class BRAIN:
         paramsTarget=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netTarget')
         paramsEval=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netEval')
 
-        with tf.variable_scope('assignTF'):
+        with tf.variable_scope('assignTE'):
             self.assignTE=[tf.assign(t,e) for t,e in zip(paramsTarget,paramsEval)]
 
         self.sess=tf.Session()
         if self.outputNNGraph:
+            os.system('rm -fr ./logs/*')
             tf.summary.FileWriter("logs/",self.sess.graph)
 
         self.sess.run(tf.global_variables_initializer())
+
+
+
+        #os.system('tensorboard --logdir logs')
+
 
 
 
@@ -96,25 +109,59 @@ class BRAIN:
             self.train=tf.train.RMSPropOptimizer(self.factorLearningRate).minimize(self.loss)
 
 
-    def StoreMemory(self):
-        pass
+    def StoreMemory(self,stateNow,actionNow,rewardNow,stateNext):
+        pieceMemory=np.hstack((stateNow,actionNow,rewardNow,stateNext))
+        indexMemory=self.counterMemory % self.sizeMemory
+        self.memory[indexMemory,:]=pieceMemory
+        self.counterMemory+=1
 
     def SelSamples(self):
-        pass
+        if self.counterMemory>self.sizeMemory:
+            indexSample=np.random.choice(self.sizeMemory,size=self.sizeBatch)
+        else:
+            indexSample=np.random.choice(self.counterMemory,size=self.sizeBatch)
 
-    def SelAction(self):
-        pass
+        memoryBatch=self.memory[indexSample,:]
+        return memoryBatch
 
-    def Learn(self):
-        pass
+    def SelAction(self,stateNow):
+        stateNow=stateNow[np.newaxis,:]
+        if np.random.uniform()<self.factorGreedyEpsilon:
+            qActionNow=self.sess.run(self.qEval,feed_dict={self.stateNow:stateNow})
+            actionNow=np.argmax(qActionNow)
+        else:
+            acitionNow=np.random.randint(0,self.numAction)
+        return actionNow
+
+    def Learn(self,stateNow):
+        if self.counterLearn % self.numAssignTE==0:
+            self.sess.run(self.assignTE)
+
+        memoryBatch=self.SelSamples()
+
+        _,lossNow=self.sess.run([self.train,self.loss],feed_dict={
+        self.stateNow:memoryBatch[:,:self.numFeature],
+        self.actionNow:memoryBatch[:,self.numFeature],
+        self.rewardNow:memoryBatch[:,self.numFeature+1],
+        self.stateNext:memoryBatch[:,:-self.numFeature:],
+        })
+
+        self.histLoss.append(lossNow)
+
+        self.factorGreedyEpsilon=self.factorGreedyEpsilon+self.factorGreedyEpsilonInc if self.factorGreedyEpsilon<self.factorGreedyEpsilonMax else self.factorGreedyEpsilonMax
+
+        self.counterLearn+=1
 
     def PlotCost(self):
-        pass
+        plt.plot(np.arange(len(self.histLoss)),self.histLoss)
+        plt.ylabel('loss')
+        plt.xlabel('training step')
+        plt.show()
+
 
 
 
 if __name__ == "__main__":
-
     brain=BRAIN()
 
     print('END @ BRAIN')
