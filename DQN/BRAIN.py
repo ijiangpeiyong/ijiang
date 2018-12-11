@@ -138,7 +138,7 @@ class BRAIN:
 
         return actionNow
 
-    def Learn(self,stateNow):
+    def Learn(self):
         if self.counterLearn % self.numAssignTE==0:
             self.sess.run(self.assignTE)
 
@@ -148,7 +148,7 @@ class BRAIN:
         self.stateNow:memoryBatch[:,:self.numFeature],
         self.actionNow:memoryBatch[:,self.numFeature],
         self.rewardNow:memoryBatch[:,self.numFeature+1],
-        self.stateNext:memoryBatch[:,:-self.numFeature:],
+        self.stateNext:memoryBatch[:,-self.numFeature:],
         })
 
         self.histLoss.append(lossNow)

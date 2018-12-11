@@ -6,36 +6,43 @@ from BRAIN import BRAIN
 import numpy as np
 
 
-numEpisode=100
+numEpisode=10000
 
 env=ENV()
 brain=BRAIN()
 
 counterStep=0
-numPreStoreMemory=200
+iEpisode=0
+numPreStoreMemory=10
 
-for iEpisode in range(numEpisode):
-    env.Reset()
-    while True:
-        stateNow=env.GetState()
+env.Reset()
+while True:
+    stateNow=env.GetState()
 
-        actionNow=brain.SelAction(stateNow)
+    actionNow=brain.SelAction(stateNow)
 
-        stateNext,rewardNow,doneNow=env.UpdateState(stateNow,actionNow)
-        brain.StoreMemory(stateNow,actionNow,rewardNow,stateNext)
+    stateNext,rewardNow,doneNow=env.UpdateState(stateNow,actionNow)
+    brain.StoreMemory(stateNow,actionNow,rewardNow,stateNext)
 
-        if counterStep > numPreStoreMemory and (counterStep % 5==0):
-            brain.Learn()
+    if counterStep > numPreStoreMemory and (counterStep % 5==0):
+        brain.Learn()
 
-        env.SetState(stateNext)
+    counterStep+=1
 
-        if doneNow:
-            print(doneNow)
+    env.SetState(stateNext)
+
+
+    if doneNow:
+        env.Reset()
+        iEpisode+=1
+        print(iEpisode)
+        if iEpisode>numEpisode:
             break
-        counterStep+=1
 
 
-    #brain.PlotLoss()
+
+
+    brain.PlotLoss()
 
 
 
