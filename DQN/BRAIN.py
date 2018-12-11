@@ -2,6 +2,7 @@
 
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -12,7 +13,7 @@ class BRAIN:
         self.numAction=4
         self.numFeature=2
 
-        self.factorGreedyEpsilon=0.9
+        self.factorGreedyEpsilon=0.1
         self.factorGreedyEpsilonInc=0.001
         self.factorGreedyEpsilonMax=0.95
 
@@ -126,11 +127,15 @@ class BRAIN:
 
     def SelAction(self,stateNow):
         stateNow=stateNow[np.newaxis,:]
+
         if np.random.uniform()<self.factorGreedyEpsilon:
-            qActionNow=self.sess.run(self.qEval,feed_dict={self.stateNow:stateNow})
+            qActionNow=self.sess.run(self.netEval,feed_dict={self.stateNow:stateNow})
             actionNow=np.argmax(qActionNow)
+
+
         else:
-            acitionNow=np.random.randint(0,self.numAction)
+            actionNow=np.random.randint(0,self.numAction)
+
         return actionNow
 
     def Learn(self,stateNow):
@@ -152,11 +157,12 @@ class BRAIN:
 
         self.counterLearn+=1
 
-    def PlotCost(self):
+    def PlotLoss(self):
+        plt.figure('loss')
         plt.plot(np.arange(len(self.histLoss)),self.histLoss)
         plt.ylabel('loss')
         plt.xlabel('training step')
-        plt.show()
+        #plt.show()
 
 
 

@@ -11,15 +11,16 @@ class ENV:
         self.numCol=7
         self.numRow=5
         self.barrier=[[1,0],[1,2],[1,3],[1,4],[2,2]]
-        self.girl=[2,3]
-        self.boy=[0,0]
+        self.girl=[[2,3]]
 
         self.timeFresh=0.1
+
+        self.counterRun=0
 
         self.printName='env'
 
         self.BuildEnv()
-        self.Print()
+        #self.Print()
         self.Reset()
 
 
@@ -27,7 +28,10 @@ class ENV:
         self.env=np.zeros((self.numRow,self.numCol))
         for iBarrier in self.barrier:
             self.env[iBarrier[0],iBarrier[1]]=-1
-        self.env[self.girl[0],self.girl[1]]=1
+
+        for iGirl in self.girl:
+            self.env[iGirl[0],iGirl[1]]=-1
+
 
 
     def Print(self):
@@ -45,13 +49,18 @@ class ENV:
 
         plt.plot(self.boy[0],self.numRow-self.boy[1],'bo',markersize='30')
         plt.axis('equal')
+        plt.title(self.counterRun)
         plt.pause(self.timeFresh)
 
 
     def Reset(self):
         self.boy=[0,0]
+        self.counterRun=0
 
     def UpdateState(self,stateNow,actionNow):
+        if not isinstance(stateNow,list):
+            stateNow=stateNow.tolist()
+
         stateNext=stateNow
         if actionNow==0:    # 上
             stateNext[0]-=1
@@ -74,6 +83,8 @@ class ENV:
             if stateNext[1]>self.numCol:
                 stateNext[1]=self.numCol
 
+
+
         if stateNext in self.barrier:
             rewardNow=-1
             doneNow=True
@@ -84,10 +95,12 @@ class ENV:
             rewardNow=0
             doneNow=False
 
+        self.Print()
+        self.counterRun+=1
         return stateNext,rewardNow,doneNow
 
     def GetState(self):
-        return self.boy
+        return np.array(self.boy)
     def SetState(self,state):
         self.boy=state
 
@@ -95,6 +108,10 @@ class ENV:
 
 if __name__=="__main__":
     env=ENV()
+    stateNow=[2,3]
+    actionNow=-1
+    env.SetState(stateNow)
+    env.UpdateState(stateNow,actionNow)
 
 
-print('END@ENV')
+    print('END@ENV')
