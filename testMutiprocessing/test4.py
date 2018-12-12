@@ -1,0 +1,15 @@
+
+import numpy as np
+import multiprocessing as mp
+
+
+def f(x):
+    x=1
+    while 1:
+       x+=1 
+       print(x)
+
+import multiprocessing as mp
+n_thread = mp.cpu_count()
+with mp.Pool(n_thread) as p:
+    p.map(f, range(n_thread))
