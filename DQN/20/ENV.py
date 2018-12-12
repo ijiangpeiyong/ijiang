@@ -62,7 +62,7 @@ class ENV:
         if doneNow:
             plt.close(self.printName)
 
-            
+
 
         #plt.show()
 
