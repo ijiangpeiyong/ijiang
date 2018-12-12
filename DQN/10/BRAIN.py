@@ -13,18 +13,18 @@ class BRAIN:
         self.numAction=4
         self.numFeature=2
 
-        self.factorGreedyEpsilon=0.1
+        self.factorGreedyEpsilon=0.85
         self.factorGreedyEpsilonInc=0.001
-        self.factorGreedyEpsilonMax=0.95
+        self.factorGreedyEpsilonMax=0.9
 
         self.factorRewardDecayGamma=0.9
 
         self.factorLearningRate=0.1
 
-        self.sizeMemory=3000
+        self.sizeMemory=1000
         self.sizeBatch=32
 
-        self.numAssignTE=500
+        self.numAssignTE=50
 
         self.outputNNGraph=True
 
@@ -140,6 +140,7 @@ class BRAIN:
 
     def Learn(self):
         if self.counterLearn % self.numAssignTE==0:
+            #print('AssignTE')
             self.sess.run(self.assignTE)
 
         memoryBatch=self.SelSamples()

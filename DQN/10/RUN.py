@@ -6,7 +6,7 @@ from BRAIN import BRAIN
 import numpy as np
 
 
-numEpisode=10000
+numEpisode=1000
 
 env=ENV()
 brain=BRAIN()
@@ -35,14 +35,14 @@ while True:
     if doneNow:
         env.Reset()
         iEpisode+=1
-        print(iEpisode)
+        print(iEpisode,brain.factorGreedyEpsilon)
         if iEpisode>numEpisode:
             break
 
 
 
 
-    brain.PlotLoss()
+    #brain.PlotLoss()
 
 
 

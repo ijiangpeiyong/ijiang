@@ -7,35 +7,37 @@ class ENV:
     def __init__(self):
         self.actionSpace=[0,1,2,3]   # 上，下，左，右
         self.numAction=len(self.actionSpace)
-        self.numFeature=2
         self.numCol=7
         self.numRow=5
-        self.barrier=[[1,0],[1,2],[1,3],[1,4],[2,2]]
-        self.girl=[[2,3]]
+        self.barrier=[9]
+        self.girl=[17]
 
         self.timeFresh=0.00001
 
+        self.numRun=30
         self.counterRun=0
 
         self.printName='env'
 
         self.BuildEnv()
         #self.Print()
-        self.Reset()
+        #self.Reset()
+
+
+    def List2Array(self):
+        self.barriernumRow
+        self.barriernumRow
+        self.
+
 
 
     def BuildEnv(self):
-        self.env=np.zeros((self.numRow,self.numCol))
+        self.env=[0]*self.numCol*self.numRow
+        self.env[self.barrier]=-1
 
-        for iBarrier in self.barrier:
-            self.env[iBarrier[0],iBarrier[1]]=-1
+        print(self.env)
 
-        for iGirl in self.girl:
-            self.env[iGirl[0],iGirl[1]]=1
-
-            #print(self.env)
-
-    def Print(self,pltTitle='self.counterRun'):
+    def Print(self,pltTitle='self.counterRun',doneNow=False):
         plt.figure(self.printName)
         plt.clf()
         for iRow in range(self.numRow):
@@ -56,6 +58,10 @@ class ENV:
 
         plt.title(pltTitle)
         plt.pause(self.timeFresh)
+
+        if doneNow:
+            plt.close(self.printName)
+
         #plt.show()
 
 
@@ -90,16 +96,28 @@ class ENV:
 
         if stateNext in self.barrier:
             rewardNow=-1
-            doneNow=True
+            doneNow=1
         elif stateNext in self.girl:
             rewardNow=1
-            doneNow=True
+            doneNow=2
         else:
             rewardNow=0
             doneNow=False
 
-        self.Print()
+        rewardNow-=0.1
+
+        if self.counterRun>=self.numRun:
+            rewardNow-=0.5
+            doneNow=3
+
+
+        self.Print(doneNow=doneNow)
         self.counterRun+=1
+
+
+
+        if doneNow:
+            print(rewardNow)
         return stateNext,rewardNow,doneNow
 
     def GetState(self):
@@ -111,10 +129,6 @@ class ENV:
 
 if __name__=="__main__":
     env=ENV()
-    stateNow=[0,0]
-    actionNow=-1
-    env.SetState(stateNow)
-    env.UpdateState(stateNow,actionNow)
 
 
     print('END@ENV')
