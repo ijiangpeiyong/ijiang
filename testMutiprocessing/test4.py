@@ -4,10 +4,12 @@ import multiprocessing as mp
 
 
 def f(x):
-    x=1
+    n=1000
+    x=np.random.random((n,n))
     while 1:
-       x+=1 
+       x**=2
        print(x)
+
 
 import multiprocessing as mp
 n_thread = mp.cpu_count()
