@@ -15,3 +15,6 @@ import multiprocessing as mp
 n_thread = mp.cpu_count()
 with mp.Pool(n_thread) as p:
     p.map(f, range(n_thread))
+
+
+print('END')
