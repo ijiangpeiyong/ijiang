@@ -5,7 +5,6 @@ from BRAIN import BRAIN
 
 import numpy as np
 
-
 numEpisode=1000
 
 env=ENV()
@@ -16,9 +15,24 @@ iEpisode=0
 numPreStoreMemory=10
 
 env.Reset()
+
+iTest=0
 while True:
     stateNow=env.GetState()
 
+
+
+    
+    print(stateNow)
+
+    iTest+=1
+    if iTest==1:
+        break
+    
+
+
+
+    '''
     actionNow=brain.SelAction(stateNow)
 
     stateNext,rewardNow,doneNow=env.UpdateState(stateNow,actionNow)
@@ -44,7 +58,7 @@ while True:
 
     #brain.PlotLoss()
 
-
+    '''
 
 
 

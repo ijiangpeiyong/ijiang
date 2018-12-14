@@ -1,0 +1,18 @@
+FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+
+解决办法： pip install h5py==2.8
+
+
+解决问题
+FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+
+
+解决思路
+包内出错，是h5py包
+
+解决办法
+对h5py进行更新升级
+pip install h5py==2.8.0rc1
+
+

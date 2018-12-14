@@ -11,7 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 class BRAIN:
     def __init__(self):
         self.numAction=4
-        self.numFeature=2
+        self.numFeature=1
 
         self.factorGreedyEpsilon=0.85
         self.factorGreedyEpsilonInc=0.001
@@ -63,8 +63,8 @@ class BRAIN:
         # 整体思路：
 
         # 输入
-        self.stateNow=tf.placeholder(tf.float32,[None,self.numFeature],name='stateNow')
-        self.stateNext=tf.placeholder(tf.float32,[None,self.numFeature],name='stateNext')
+        self.stateNow=tf.placeholder(tf.int32,[None,],name='stateNow')
+        self.stateNext=tf.placeholder(tf.int32,[None,],name='stateNext')
         self.rewardNow=tf.placeholder(tf.float32,[None,],name='rewardNow')
         self.actionNow=tf.placeholder(tf.int32,[None,],name='actionNow')
 

@@ -1,3 +1,5 @@
 {
-    "python.pythonPath": "/home/pyong/install/anaconda3/bin/python"
+    "python.pythonPath": "/home/pyong/install/anaconda3/bin/python",
+    "editor.fontSize": 20,
+    "terminal.explorerKind": "external"
 }

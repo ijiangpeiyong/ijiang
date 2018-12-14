@@ -62,7 +62,7 @@ class ENV:
 
         plt.pause(self.timeFresh)
 
-        plt.show()
+        #plt.show()
         
     def Reset(self):
         self.boy=0
