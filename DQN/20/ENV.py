@@ -76,64 +76,17 @@ class ENV:
         
         if actionNow==0:    # 下
             if stateNext<self.numCol:
-                
-
-
-
-            stateNext-=self.numCol
-            if stateNext<0:
+                stateNext-=self.numCol
+        if actionNow==1:      # 上
+            if stateNext>numState-numState-1:
                 stateNext+=self.numCol
+        if actionNow==2:    # 左
+            if stateNext > 0:
+                stateNext-=1
+        if actionNow==3:     # 右
+            if stateNow==numState-1:
+                stateNext+=1
 
-        if actionNow==1:    # 下
-            stateNext+=self.numCol
-            if stateNext<0:
-                stateNext+=self.numCol
-
-
-
-
-            if stateNext<0:
-                stateNext[0]=0
-
-        elif actionNow==1:   # 上
-            stateNext[0]+=self.numCol
-            if stateNext[0]>self.numRow-1:
-                stateNext[0]=self.numRow-1
-
-        elif actionNow==2:  #  左
-            stateNext[1]-=1
-            if stateNext[1]<0:
-                stateNext[1]=0
-
-        elif actionNow==3:  # 右
-            stateNext[1]+=1
-            if stateNext[1]>self.numCol-1:
-                stateNext[1]=self.numCol-1
-
-
-
-
-
-
-        if actionNow==0:    # 下
-            stateNext[0]-=1
-            if stateNext[0]<0:
-                stateNext[0]=0
-
-        elif actionNow==1:   # 上
-            stateNext[0]+=1
-            if stateNext[0]>self.numRow-1:
-                stateNext[0]=self.numRow-1
-
-        elif actionNow==2:  #  左
-            stateNext[1]-=1
-            if stateNext[1]<0:
-                stateNext[1]=0
-
-        elif actionNow==3:  # 右
-            stateNext[1]+=1
-            if stateNext[1]>self.numCol-1:
-                stateNext[1]=self.numCol-1
 
         if stateNext in self.barrier:
             rewardNow=-1
