@@ -23,7 +23,7 @@ while True:
 
 
     
-    print(stateNow)
+    print(stateNow)         
 
     iTest+=1
     if iTest==1:

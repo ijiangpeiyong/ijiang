@@ -38,6 +38,7 @@ class BRAIN:
         self.BuildNet()
 
 
+
         # Get all variables in the netTarget and netEval
         paramsTarget=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netTarget')
         paramsEval=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netEval')
@@ -63,8 +64,8 @@ class BRAIN:
         # 整体思路：
 
         # 输入
-        self.stateNow=tf.placeholder(tf.int32,[None,],name='stateNow')
-        self.stateNext=tf.placeholder(tf.int32,[None,],name='stateNext')
+        self.stateNow=tf.placeholder(tf.float32,[None,self.numFeature],name='stateNow')
+        self.stateNext=tf.placeholder(tf.float32,[None,self.numFeature],name='stateNext')
         self.rewardNow=tf.placeholder(tf.float32,[None,],name='rewardNow')
         self.actionNow=tf.placeholder(tf.int32,[None,],name='actionNow')
 
@@ -87,7 +88,6 @@ class BRAIN:
 
             self.netTarget=tf.layers.dense(netTarget_1,self.numAction,
             kernel_initializer=initializeW,bias_initializer=initializeB,name='netTarget')
-
 
         # qTarget：未来的
         # qTarget = r + gamma * qMaxS_
@@ -169,6 +169,7 @@ class BRAIN:
 
 
 if __name__ == "__main__":
+    print('-'*50)
     brain=BRAIN()
 
     print('END @ BRAIN')
