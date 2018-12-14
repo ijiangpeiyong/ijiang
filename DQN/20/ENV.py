@@ -62,7 +62,7 @@ class ENV:
 
         plt.pause(self.timeFresh)
 
-        #plt.show()
+        plt.show()
         
     def Reset(self):
         self.boy=0
@@ -84,38 +84,28 @@ class ENV:
             if stateNext > 0:
                 stateNext-=1
         if actionNow==3:     # 右
-            if stateNow==numState-1:
+            if stateNow<numState-1:
                 stateNext+=1
 
 
         if stateNext in self.barrier:
             rewardNow=-1
-            doneNow=1
+            doneNow='barrier'
         elif stateNext in self.girl:
             rewardNow=1
-            doneNow=2
+            doneNow='girl'
         else:
-            rewardNow=0
-            doneNow=False
-
-        rewardNow-=0.1
-
-        if self.counterRun>=self.numRun:
-            rewardNow-=0.5
-            doneNow=3
+            rewardNow-=0.1
+            doneNow='continue'
 
 
         self.Print()
         self.counterRun+=1
 
-
-
-        if doneNow:
-            print(rewardNow)
         return stateNext,rewardNow,doneNow
 
     def GetState(self):
-        return np.array(self.boy)
+        return self.boy
     def SetState(self,state):
         self.boy=state
 
