@@ -1,0 +1,27 @@
+error: command 'x86_64-linux-gnu-gcc' failed with exit status 1
+
+I encountered the same problem in college having installed Linux Mint for the main project of my final year, the third solution below worked for me.
+
+When encountering this error please note before the error it may say you are missing a package or header file, you should find those and install them and verify if it works. (e.g. ssl -> libssl)
+
+For Python 2.x use:
+
+   $ sudo apt-get install python-dev
+For Python 2.7 use:
+
+   $ sudo apt-get install libffi-dev
+For Python 3.x use:
+
+   $ sudo apt-get install python3-dev
+For Python 3.4 use:
+
+   $ sudo apt-get install python3.4-dev
+For Python 3.5 use:
+
+   $ sudo apt-get install python3.5-dev
+For Python 3.6 use:
+
+   $ sudo apt-get install python3.6-dev
+For Python 3.7 use:
+
+   $ sudo apt-get install python3.7-dev

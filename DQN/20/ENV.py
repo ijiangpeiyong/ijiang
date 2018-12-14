@@ -9,8 +9,9 @@ class ENV:
         self.numAction=len(self.actionSpace)
         self.numCol=7
         self.numRow=5
-        self.barrier=[9]
+        self.barrier=[7,9,10,11,16]
         self.girl=[17]
+        self.boy=0
 
         self.timeFresh=0.00001
 
@@ -20,62 +21,100 @@ class ENV:
         self.printName='env'
 
         self.BuildEnv()
-        #self.Print()
-        #self.Reset()
-
-
-    def List2Array(self):
-        self.barriernumRow
-        self.barriernumRow
-        self.
-
+        self.Print()
+        self.Reset()
 
 
     def BuildEnv(self):
-        self.env=[0]*self.numCol*self.numRow
-        self.env[self.barrier]=-1
+        self.env=[0]*(self.numCol*self.numRow)
+        for iBarrier in self.barrier:
+            self.env[iBarrier]=-1
+        for iGirl in self.girl:
+            self.env[iGirl]=1
+        self.env[self.boy]=2        
 
-        print(self.env)
-
-    def Print(self,pltTitle='self.counterRun',doneNow=False):
+    def Print(self,pltTitle='self.counterRun'):
         plt.figure(self.printName)
         plt.clf()
-        for iRow in range(self.numRow):
-            for iCol in range(self.numCol):
-                if self.env[iRow,iCol]==0:
-                    plt.plot(iCol,iRow,'ys',markersize='50')
+        
+        iRow,iCol=0,0
+        for iEnv in self.env: 
+            if iEnv==0:
+                plt.plot(iCol,iRow,'ys',markersize='40')
+            elif iEnv==-1:
+                plt.plot(iCol,iRow,'ks',markersize='40')
+            elif iEnv==1:
+                plt.plot(iCol,iRow,'rs',markersize='40')
+            elif iEnv==2:
+                plt.plot(iCol,iRow,'bo',markersize='30')            
 
-                elif self.env[iRow,iCol]==-1:
-                    plt.plot(iCol,iRow,'ks',markersize='50')
-                elif self.env[iRow,iCol]==1:
-                    plt.plot(iCol,iRow,'rs',markersize='50')
+            iCol+=1
+            if iCol==self.numCol:
+                iRow+=1
+                iCol=0
 
-        plt.plot(self.boy[1],self.boy[0],'bo',markersize='30')
-        plt.axis('equal')
+        plt.axis('equal') 
+        plt.axis([-1,7,-1,5])
 
         if pltTitle=='self.counterRun':
             pltTitle=self.counterRun
-
         plt.title(pltTitle)
+
         plt.pause(self.timeFresh)
 
-        if doneNow:
-            plt.close(self.printName)
-
-
-
         #plt.show()
-
-
+        
     def Reset(self):
-        self.boy=[0,0]
+        self.boy=0
         self.counterRun=0
 
     def UpdateState(self,stateNow,actionNow):
-        if not isinstance(stateNow,list):
-            stateNow=stateNow.tolist()
 
+        numState=self.numCol*self.numRow
         stateNext=stateNow
+        
+        
+        if actionNow==0:    # 下
+            if stateNext<self.numCol:
+                
+
+
+
+            stateNext-=self.numCol
+            if stateNext<0:
+                stateNext+=self.numCol
+
+        if actionNow==1:    # 下
+            stateNext+=self.numCol
+            if stateNext<0:
+                stateNext+=self.numCol
+
+
+
+
+            if stateNext<0:
+                stateNext[0]=0
+
+        elif actionNow==1:   # 上
+            stateNext[0]+=self.numCol
+            if stateNext[0]>self.numRow-1:
+                stateNext[0]=self.numRow-1
+
+        elif actionNow==2:  #  左
+            stateNext[1]-=1
+            if stateNext[1]<0:
+                stateNext[1]=0
+
+        elif actionNow==3:  # 右
+            stateNext[1]+=1
+            if stateNext[1]>self.numCol-1:
+                stateNext[1]=self.numCol-1
+
+
+
+
+
+
         if actionNow==0:    # 下
             stateNext[0]-=1
             if stateNext[0]<0:
@@ -113,7 +152,7 @@ class ENV:
             doneNow=3
 
 
-        self.Print(doneNow=doneNow)
+        self.Print()
         self.counterRun+=1
 
 
