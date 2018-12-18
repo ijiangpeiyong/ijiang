@@ -14,38 +14,41 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class DQN:
     def __init__(self):
+        self.numENV=6
+        self.numBrain=6
+
         # ------- 环境 ---------------
         self.actionSpace = [0, 1, 2, 3]   # 上，下，左，右
         self.numAction = len(self.actionSpace)
         self.numCol = 7
         self.numRow = 5
         self.barrier = [7, 9, 10, 11, 16]
-        self.girl = [17]
-        self.boy = 0
+        self.aim = [17]
 
         self.timeFresh = 0.005
 
-        self.numRun = 300
+        self.numRunMax = 300
         self.counterRun = 0
 
         self.printName = 'env'
 
         # --------- 大脑 ------------
+        self.numEpisode=100000
+
+        self.numAssignTE=500
 
         self.numFeature=2
 
-        self.factorGreedyEpsilon=0.5
+        self.sizeMemory=10000
+        self.sizeBatch=128
+
+        self.factorGreedyEpsilon=0.7
         self.factorGreedyEpsilonInc=0.001
         self.factorGreedyEpsilonMax=1.
 
         self.factorRewardDecayGamma=0.9
 
         self.factorLearningRate=0.0001
-
-        self.sizeMemory=10000
-        self.sizeBatch=128
-
-        self.numAssignTE=500
 
         self.outputNNGraph=True
 
@@ -68,15 +71,22 @@ class DQN:
         paramsTarget=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netTarget')
         paramsEval=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,scope='netEval')
 
+        # 替换神经网络的参数
         with tf.variable_scope('assignTE'):
             self.assignTE=[tf.assign(t,e) for t,e in zip(paramsTarget,paramsEval)]
 
-        self.sess=tf.Session()
+        # 配置Session
+        self.sess=tf.Session(config=tf.ConfigProto(
+        device_count={"CPU":self.numBrain},
+        inter_op_parallelism_threads=1,
+        intra_op_parallelism_threads=1,
+        ))
+        self.sess.run(tf.global_variables_initializer())  
+
+        # 可视化
         if self.outputNNGraph:
             os.system('rm -fr ./logs/*')
             tf.summary.FileWriter("logs/",self.sess.graph)
-
-        self.sess.run(tf.global_variables_initializer())        
 
 
 
@@ -84,8 +94,8 @@ class DQN:
         self.env = [0]*(self.numCol*self.numRow)
         for iBarrier in self.barrier:
             self.env[iBarrier] = -1
-        for iGirl in self.girl:
-            self.env[iGirl] = 1
+        for iaim in self.aim:
+            self.env[iaim] = 1
 
     def Print(self, pltTitle='self.counterRun'):
         plt.figure(self.printName)
@@ -122,7 +132,7 @@ class DQN:
         # plt.show()
 
     def Reset(self):
-        self.boy = 0
+        self.stateNow = 0
         self.counterRun = 0
         self.Print()
 
@@ -152,14 +162,14 @@ class DQN:
             rewardNow = -1
             doneNow = True
 
-        elif stateNext in self.girl:
+        elif stateNext in self.aim:
             rewardNow = 1
             doneNow = True
         else:
             rewardNow = 0
             doneNow = False
 
-        if self.counterRun == self.numRun:
+        if self.counterRun == self.numRunMax:
             rewardNow += 0
             doneNow = True
 
@@ -175,11 +185,7 @@ class DQN:
 
         return stateNext, rewardNow, doneNow, counterRun
 
-    def GetState(self):
-        return self.boy, self.counterRun
 
-    def SetState(self, state):
-        self.boy = state
 
 
     def BuildNet(self):
@@ -311,6 +317,8 @@ if __name__ == '__main__':
     myDQN = DQN()
 
 
+
+    '''
     numEpisode=1000000
 
     counterStep=0
@@ -349,7 +357,7 @@ if __name__ == '__main__':
         env.SetState(stateNext)
 
         brain.PlotLoss()
-
+    '''
 
 
     print('END')
