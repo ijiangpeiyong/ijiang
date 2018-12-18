@@ -21,10 +21,10 @@ class BRAIN:
 
         self.factorLearningRate=0.0001
 
-        self.sizeMemory=1000
-        self.sizeBatch=64
+        self.sizeMemory=10000
+        self.sizeBatch=128
 
-        self.numAssignTE=100
+        self.numAssignTE=500
 
         self.outputNNGraph=True
 
@@ -172,7 +172,7 @@ class BRAIN:
         plt.ylabel('loss')
         plt.xlabel('training step')
         plt.title(self.factorGreedyEpsilon)
-        plt.pause(0.0000001)
+        plt.pause(0.001)
         #plt.show()
 
 

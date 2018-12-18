@@ -30,11 +30,7 @@ def workCal(nData):
 
 
 if __name__=='__main__':
-    q=Queue()
     numCount = 6
-    with mp.Pool(processes=numCount) as p:
-        res=p.map(workCal,range(numCount))
-    
     with mp.Pool(processes=numCount) as p:
         res=p.map(workCal,range(numCount))
     

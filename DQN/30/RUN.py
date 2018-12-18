@@ -7,7 +7,7 @@ import numpy as np
 
 from multiprocessing import Process
 
-numEpisode=1000
+numEpisode=1000000
 
 env=ENV()
 brain=BRAIN()
@@ -32,10 +32,7 @@ while True:
     brain.StoreMemory(stateNow,counterRunNow,actionNow,rewardNow,stateNext,counterRunNext)
 
     if counterStep > numPreStoreMemory and (counterStep % 5==0):
-        p = Process(target=brain.Learn)
-        p.start()
-        p.join()
-        #brain.Learn()
+        brain.Learn()
 
     counterStep+=1
 

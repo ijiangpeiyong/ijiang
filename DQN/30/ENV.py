@@ -9,13 +9,13 @@ class ENV:
         self.numAction=len(self.actionSpace)
         self.numCol=7
         self.numRow=5
-        self.barrier=[34]
+        self.barrier=[7,9,10,11,16]
         self.girl=[17]
         self.boy=0
 
         self.timeFresh=0.005
 
-        self.numRun=100
+        self.numRun=300
         self.counterRun=0
 
         self.printName='env'
@@ -106,9 +106,10 @@ class ENV:
             doneNow=False
 
         if self.counterRun==self.numRun:
+            rewardNow+=0
             doneNow=True
         
-        rewardNow-=0.05
+        rewardNow+=0.003
 
 
         self.boy=stateNext

@@ -15,7 +15,7 @@ class ENV:
 
         self.timeFresh=0.005
 
-        self.numRun=30
+        self.numRun=100
         self.counterRun=0
 
         self.printName='env'
@@ -105,10 +105,12 @@ class ENV:
             rewardNow=0
             doneNow=False
         
-
+        if self.counterRun>self.numRun:
+            rewardNow+=0
+            doneNow=True
         
-        #rewardNow-=0.1
-        rewardNow=0.1
+        rewardNow+=0.001
+        #rewardNow=0.1
 
         self.boy=stateNext
 
