@@ -25,6 +25,10 @@ class DQN:
         self.barrier = [7, 9, 10, 11, 16]
         self.aim = [17]
 
+        self.rewardNow=-1e10
+        self.rewardGlobal=-1e10
+        self.storeMemoryGreedy=0.8
+
         self.timeFresh = 0.005
 
         self.numRunMax = 300
@@ -37,7 +41,7 @@ class DQN:
 
         self.numAssignTE=500
 
-        self.numFeature=2
+        self.numFeature=1
 
         self.sizeMemory=10000
         self.sizeBatch=128
@@ -52,7 +56,8 @@ class DQN:
 
         self.outputNNGraph=True
 
-        self.memory=np.zeros((self.sizeMemory,self.numFeature*2+2))
+        self.numMemory=self.numFeature*2+2
+        self.memoryLong=np.zeros((self.sizeMemory,self.numMemory))
 
         self.counterMemory=0
         self.counterLearn=0
@@ -132,15 +137,19 @@ class DQN:
         # plt.show()
 
     def Reset(self):
+        self.memoryShort=np.zeros((0,self.numMemory))
         self.stateNow = 0
         self.stateNext=0
         self.counterRun = 0
         self.Print()
 
+        if (self.rewardNow>=self.rewardGlobal) or (np.random.uniform()>self.storeMemoryGreedy):
+            self.MemoryLong()
+
     def UpdateState(self):
 
         numState = self.numCol*self.numRow
-        self.stateNext = self.stateNow
+        self.stateNow=self.stateNext
 
         if self.actionNow == 0:    # 下
             if self.stateNext >= self.numCol:
@@ -179,7 +188,6 @@ class DQN:
         self.Print()
 
         self.counterRun += 1
-
 
 
     #----------------- 大脑 ----------------------------
@@ -233,12 +241,18 @@ class DQN:
         with tf.variable_scope('train'):
             self.train=tf.train.RMSPropOptimizer(self.factorLearningRate).minimize(self.loss)
 
+    def MemoryPiece(self):
+        self.memoryPiece=np.hstack((self.stateNow,self.actionNow,self.rewardNow,self.stateNext))
 
-    def StoreMemory(self,stateNow,counterRunNow,actionNow,rewardNow,stateNext,counterRunNext):
-        pieceMemory=np.hstack((stateNow,counterRunNow,actionNow,rewardNow,stateNext,counterRunNext))
-        indexMemory=self.counterMemory % self.sizeMemory
-        self.memory[indexMemory,:]=pieceMemory
-        self.counterMemory+=1
+    def MemoryShort(self):
+        self.memoryShort=np.vstack((self.memoryShort,self.memoryPiece))
+
+    def MemoryLong(self):
+        for iShort in self.memoryShort:
+            indexMemory=self.counterMemory % self.sizeMemory
+            self.memoryLong[indexMemory,:]=self.memoryPiece
+            self.counterMemory+=1
+
 
     def SelSamples(self):
         if self.counterMemory>self.sizeMemory:
