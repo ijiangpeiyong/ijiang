@@ -88,7 +88,7 @@ class DQN:
             os.system('rm -fr ./logs/*')
             tf.summary.FileWriter("logs/",self.sess.graph)
 
-
+    #----------------- 环境 ----------------------------
 
     def BuildEnv(self):
         self.env = [0]*(self.numCol*self.numRow)
@@ -116,8 +116,8 @@ class DQN:
                 iRow += 1
                 iCol = 0
 
-        iRow = self.boy // self.numCol
-        iCol = self.boy % self.numCol
+        iRow = self.stateNow // self.numCol
+        iCol = self.stateNow % self.numCol
         plt.plot(iCol, iRow, 'bo', markersize='30')
 
         plt.axis('equal')
@@ -133,60 +133,56 @@ class DQN:
 
     def Reset(self):
         self.stateNow = 0
+        self.stateNext=0
         self.counterRun = 0
         self.Print()
 
-    def UpdateState(self, stateNow, actionNow):
+    def UpdateState(self):
 
         numState = self.numCol*self.numRow
-        stateNext = stateNow
+        self.stateNext = self.stateNow
 
-        if actionNow == 0:    # 下
-            if stateNext >= self.numCol:
-                stateNext -= self.numCol
+        if self.actionNow == 0:    # 下
+            if self.stateNext >= self.numCol:
+                self.stateNext -= self.numCol
                 # print('下')
-        if actionNow == 1:      # 上
-            if stateNext < numState-self.numCol:
-                stateNext += self.numCol
+        if self.actionNow == 1:      # 上
+            if self.stateNext < numState-self.numCol:
+                self.stateNext += self.numCol
                 # print('上')
-        if actionNow == 2:    # 左
-            if (stateNext % self.numCol) > 0:
-                stateNext -= 1
+        if self.actionNow == 2:    # 左
+            if (self.stateNext % self.numCol) > 0:
+                self.stateNext -= 1
                 # print('左')
-        if actionNow == 3:     # 右
-            if (stateNext % self.numCol) < self.numCol-1:
-                stateNext += 1
+        if self.actionNow == 3:     # 右
+            if (self.stateNext % self.numCol) < self.numCol-1:
+                self.stateNext += 1
                 # print('右')
 
-        if stateNext in self.barrier:
-            rewardNow = -1
-            doneNow = True
+        if self.stateNext in self.barrier:
+            self.rewardNow = -1
+            self.doneNow = True
 
-        elif stateNext in self.aim:
-            rewardNow = 1
-            doneNow = True
+        elif self.stateNext in self.aim:
+            self.rewardNow = 1
+            self.doneNow = True
         else:
-            rewardNow = 0
-            doneNow = False
+            self.rewardNow = 0
+            self.doneNow = False
 
         if self.counterRun == self.numRunMax:
-            rewardNow += 0
-            doneNow = True
+            self.rewardNow += 0
+            self.doneNow = True
 
-        rewardNow += 0.003
-
-        self.boy = stateNext
+        self.rewardNow += 0.003
 
         self.Print()
 
         self.counterRun += 1
 
-        counterRun = self.counterRun
-
-        return stateNext, rewardNow, doneNow, counterRun
 
 
-
+    #----------------- 大脑 ----------------------------
 
     def BuildNet(self):
         # 整体思路：
