@@ -250,7 +250,7 @@ class DQN:
     def MemoryLong(self):
         for iShort in self.memoryShort:
             indexMemory=self.counterMemory % self.sizeMemory
-            self.memoryLong[indexMemory,:]=self.memoryPiece
+            self.memoryLong[indexMemory,:]=iShort
             self.counterMemory+=1
 
 
@@ -260,11 +260,11 @@ class DQN:
         else:
             indexSample=np.random.choice(self.counterMemory,size=self.sizeBatch)
 
-        memoryBatch=self.memory[indexSample,:]
-        return memoryBatch
+        self.memoryBatch=self.memoryLong[indexSample,:]
+        
 
-    def SelAction(self,stateNow,counterRunNow):
-        stateNow=np.array([stateNow,counterRunNow])
+    def SelAction(self):
+        stateNow=np.array([stateNow])
         stateNow=stateNow[np.newaxis,:]
 
         if np.random.uniform()<self.factorGreedyEpsilon:
@@ -274,8 +274,8 @@ class DQN:
         else:
             actionNow=np.random.randint(0,self.numAction)
             #print('随机')
-
         return actionNow
+
 
     def Learn(self):
         if self.counterLearn % self.numAssignTE==0:
