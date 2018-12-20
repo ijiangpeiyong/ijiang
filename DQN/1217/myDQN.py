@@ -36,14 +36,19 @@ class DQN:
 
         self.printName = 'env'
 
+        # ------- 初始化 ： 环境 ---------------
+        self.BuildEnv()
+        self.InitEnv()
+
+
+
+        
         # --------- 大脑 ------------
         self.numEpisode=100000
-
+        
         self.numAssignTE=500
 
-        self.numFeature=1
-
-        self.sizeMemory=10000
+        self.sizeMemory=3000
         self.sizeBatch=128
 
         self.factorGreedyEpsilon=0.7
@@ -56,17 +61,17 @@ class DQN:
 
         self.outputNNGraph=True
 
-        self.numMemory=self.numFeature*2+2
-        self.memoryLong=np.zeros((self.sizeMemory,self.numMemory))
+        self.memoryLong=np.zeros((self.sizeMemory,self.numMemoryPiece))
 
         self.counterMemory=0
         self.counterLearn=0
 
         self.histLoss=[]
 
-        # ------- 初始化 ： 环境 ---------------
-        self.BuildEnv()
+        self.Reset()
 
+
+        '''
         # ------- 初始化 ： 大脑 ---------------
 
         self.BuildNet()
@@ -92,15 +97,31 @@ class DQN:
         if self.outputNNGraph:
             os.system('rm -fr ./logs/*')
             tf.summary.FileWriter("logs/",self.sess.graph)
-
+    '''
     #----------------- 环境 ----------------------------
 
+    def InputNN(self):
+        self.inputNow=np.array([self.stateNow])
+        self.unputNext=np.array([self.stateNext])
+
+    
     def BuildEnv(self):
         self.env = [0]*(self.numCol*self.numRow)
         for iBarrier in self.barrier:
             self.env[iBarrier] = -1
         for iaim in self.aim:
             self.env[iaim] = 1
+    
+    def InitEnv(self):
+        self.stateNow = 0
+        self.stateNext=0
+        self.counterRun = 0
+
+        self.InputNN()
+        self.numFeature=len(self.inputNow)
+
+        self.numMemoryPiece=self.numFeature*2+2
+
 
     def Print(self, pltTitle='self.counterRun'):
         plt.figure(self.printName)
@@ -137,7 +158,7 @@ class DQN:
         # plt.show()
 
     def Reset(self):
-        self.memoryShort=np.zeros((0,self.numMemory))
+        self.memoryShort=np.zeros((0,self.numMemoryPiece))
         self.stateNow = 0
         self.stateNext=0
         self.counterRun = 0
@@ -145,6 +166,8 @@ class DQN:
 
         if (self.rewardNow>=self.rewardGlobal) or (np.random.uniform()>self.storeMemoryGreedy):
             self.MemoryLong()
+
+    '''
 
     def UpdateState(self):
 
@@ -241,6 +264,8 @@ class DQN:
         with tf.variable_scope('train'):
             self.train=tf.train.RMSPropOptimizer(self.factorLearningRate).minimize(self.loss)
 
+    '''
+
     def MemoryPiece(self):
         self.memoryPiece=np.hstack((self.stateNow,self.actionNow,self.rewardNow,self.stateNext))
 
@@ -253,6 +278,7 @@ class DQN:
             self.memoryLong[indexMemory,:]=iShort
             self.counterMemory+=1
 
+    '''
 
     def SelSamples(self):
         if self.counterMemory>self.sizeMemory:
@@ -312,6 +338,7 @@ class DQN:
         plt.title(self.factorGreedyEpsilon)
         plt.pause(0.001)
         #plt.show()
+    '''
 
 
 
