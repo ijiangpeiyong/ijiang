@@ -20,3 +20,7 @@ print(16.*2/np.pi**2*1.1)
 x1,x2,x3,x4=np.random.random((2,4))
 print(x1,x2,x3,x4)
 '''
+
+from scipy import constants as const
+
+print(const.c)
