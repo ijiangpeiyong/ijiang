@@ -4,44 +4,78 @@
 import numpy as np
 
 class Beam():
-    def __init__(self):
+    def __init__(self):  # 初始化
         pass
 
-    def SetNumPart(self,numPart):
+    #--------------------------------------------------
+    def SetNumPart(self,numPart):      # 宏粒子个数
         self.numPart=np.int32(numPart)
     
-    def SetEnergy(self,energyMeV=1.5):
-        self.energy=energyMeV
+    #---------------------------------------------------
+    def SetFrequency(self,freq):    # 束流的基础频率，通常用于计算束团长度 MHz
+        self.freq=freq*1e6
 
-    def SetFrequency(self,freqMHz):
-        self.freqMHz=freqMHz
+    #----------------------------------------------------
+    def SetEs(self,Es=1.5):   # 同步粒子能量   MeV
+        self.Es=Es
+    
+    def SetZs(self,zs=0.):   # 同步粒子z向位置   mm
+        self.zs=zs
 
-    def SetEmitNormX(self,emitNormX=0.22):
+    def SetXs(self,xs=0.):   # 同步粒子x向位置   mm
+        self.xs=xs
+    
+    def SetXps(self,xps=0.):   # 同步粒子xp位置   mrad
+        self.xps=xps
+    
+    def SetYs(self,ys=0.):    # 同步粒子y位置    mm
+        self.ys=ys
+    
+    def SetYps(self,yps=0.):   # 同步粒子yp位置   mrad
+        self.yps=yps
+
+    #--------------------------------------------------------
+    def SetEmitNormX(self,emitNormX=0.22):  #设置归一化发射度： X  mm-mrad
         self.emitNormX=emitNormX
-    def SetEmitNormY(self,emitNormY=0.22):
+
+    def SetEmitNormY(self,emitNormY=0.22):   #设置归一化发射度： Y  mm-mrad
         self.emitNormY=emitNormY
-    def SetEmitNormZ(self,emitNormZ=0.25):
+
+    def SetEmitNormZ(self,emitNormZ=0.25):    #设置归一化发射度： Z  mm-mrad
         self.emitNormZ=emitNormZ
 
-    def SetTwissAlphaX(self,twissAlphaX=0.):
+
+    def SetTwissAlphaX(self,twissAlphaX=0.):    # 设置束流twiss参数 alpha X
         self.twissAlphaX=twissAlphaX
-    def SetTwissAlphaY(self,twissAlphaY=0.):
+
+    def SetTwissAlphaY(self,twissAlphaY=0.):    # 设置束流twiss参数 alpha Y
         self.twissAlphaY=twissAlphaY
-    def SetTwissAlphaZ(self,twissAlphaZ=0.):
+
+    def SetTwissAlphaZ(self,twissAlphaZ=0.):    # 设置束流twiss参数 alpha Z
         self.twissAlphaZ=twissAlphaZ
 
-    def SetTwissBetaX(self,twissBetaX=1.):
+
+    def SetTwissBetaX(self,twissBetaX=1.):    # 设置束流twiss参数 beta X   m
         self.twissBetaX=twissBetaX
-    def SetTwissBetaY(self,twissBetaY=1.):
+
+    def SetTwissBetaY(self,twissBetaY=1.):   # 设置束流twiss参数 beta Y    m
         self.twissBetaY=twissBetaY
-    def SetTwissBetaZ(self,twissBetaZ=1.):
+
+    def SetTwissBetaZ(self,twissBetaZ=1.):   # 设置束流twiss参数 beta Z    m
         self.twissBetaZ=twissBetaZ
 
-    def SetBeamLength(self,beamLength=1.):
+    #-------------------------------------------------
+    def SetBeamLength(self,beamLength=360.):    # 设置束流长度  单位是 °  
         self.beamLength=beamLength    
-    def SetBeamDpp(self,beamDpp=0.01):
+
+    def SetBeamDpp(self,beamDpp=0.01):     # 设置束流 dp/p
         self.beamDpp=beamDpp
-    
+
+    #-------------------------------------------------
+    def SetBeamDist(self,beamDist):      # 设置束流分布类型
+        self.beamDist=beamDist
+
+    #--------------------------------------------
     def CalTwissGammaX(self):
         self.twissGammaX=(1.+self.twissAlphaX**2)/self.twissBetaX
     def CalTwissGammaY(self):
@@ -49,8 +83,8 @@ class Beam():
     def CalTwissGammaZ(self):
         self.twissGammaZ=(1.+self.twissAlphaZ**2)/self.twissBetaZ
 
-    def SetBeamDist(self,beamDist):
-        self.beamDist=beamDist
+    def CalGammaC(self):
+        pass
 
     #--------------------------------------------
     def G4d(self):
@@ -111,7 +145,10 @@ class Beam():
         self.Uz()
         self.Gp()
 
-    def 
+
+
+    def Twiss4D(self):
+        pass
 
 
     #---------------------------------------------
