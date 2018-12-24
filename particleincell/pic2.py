@@ -24,9 +24,16 @@ class Beam():
     #----------------------------------------------------
     def SetGenEs(self,genEs=1.5):   # 同步粒子能量   MeV
         self.genEs=genEs
+
+    def SetGenDPPs(self,genDPPs=0.):    # 同步粒子的Ｄｐｐ
+        self.genDPPs=genDPPs
     
     def SetGenZs(self,genZs=0.):   # 同步粒子z向位置   mm
         self.genZs=genZs
+
+    def SetGenZPs(self,genZPs=0.):   # 同步粒子zp位置   mrad
+        self.genZPs=genZPs
+    
 
     def SetGenXs(self,genXs=0.):   # 同步粒子x向位置   mm
         self.genXs=genXs
@@ -71,10 +78,10 @@ class Beam():
         self.genTwissBetaZ=genTwissBetaZ
 
     #-------------------------------------------------
-    def SetGenBeamLength(self,genBeamLength=360.):    # 设置束流长度  单位是 °  
+    def SetGenBeamLength(self,genBeamLength=360.):    # 设置束流长度  单位是 °  　　全宽
         self.genBeamLength=genBeamLength    
 
-    def SetGenBeamDpp(self,genBeamDpp=0.01):     # 设置束流 dp/p
+    def SetGenBeamDpp(self,genBeamDpp=0.01):     # 设置束流 dp/p  半高
         self.genBeamDpp=genBeamDpp
 
     #-------------------------------------------------
@@ -145,8 +152,8 @@ class Beam():
         self.genX, self.genXP, self.genY ,self.genYP=dataRandom[0:self.genNumPart,0],dataRandom[0:self.genNumPart,1],dataRandom[0:self.genNumPart,2],dataRandom[0:self.genNumPart,3]
 
 
-    def GenUz(self):     #  计算z方向 均匀  u:uniform   范围：0-1
-        self.genZ=np.random.random((self.genNumPart))
+    def GenUz(self):     #  计算z方向 均匀  u:uniform   范围：-0.5~0.5
+        self.genZ=np.random.random((self.genNumPart))-0.5
     
     def GenGdpp(self):     #  计算dp/p  GS分布   
         self.genDpp=np.random.randn((self.genNumPart))
@@ -209,11 +216,24 @@ class Beam():
         twiss6DMatrixEig,self.genTwiss6DcovVec=np.linalg.eig(self.genTwiss6Dcov)
         self.genTwiss6DcovEigDiagSqrt=np.diag(np.sqrt(twiss6DMatrixEig))
 
+    def GenBeamExtensionZ(self):             # 生成束流时候，用于束流拉伸　　＠   z
+        self.GenWave()
+        self.GenGammaCs()
+        self.GenBetaCs()
+        lengthBetaLambda=self.genWave*self.genBetaCs
+        lengthBeam=lengthBetaLambda*self.genBeamLength/360.
+        self.genZ*=lengthBeam
+        
+    def GenBeamExtensionDpp(self):          # 生成束流时候，用于束流拉伸　　@    dpp
+        self.genDpp*=self.genBeamDpp
+
+
     def GenBeamExtension4D(self):          # 生成束流时候，用于束流拉伸　　＠　４Ｄ
         self.genX,self.genXP,self.genY,self.genYP=np.dot(self.genTwiss4DcovEigDiagSqrt,[self.genX,self.genXP,self.genY,self.genYP])
     
     def GenBeamExtension6D(self):         # 生成束流时候，用于束流拉伸　　＠　６Ｄ
         self.genX,self.genXP,self.genY,self.genYP,self.genZ,self.genZP=np.dot(self.genTwiss6DcovEigDiagSqrt,[self.genX,self.genXP,self.genY,self.genYP,self.genZ,self.genZP])
+
 
     def GenBeamRotation4D(self):         # 生成束流时候，用于束流旋转　　＠　４Ｄ
         self.genX,self.genXP,self.genY,self.genYP=np.dot(self.genTwiss4DcovVec,[self.genX,self.genXP,self.genY,self.genYP])
@@ -222,11 +242,28 @@ class Beam():
         self.genX,self.genXP,self.genY,self.genYP,self.genZ,self.genZP=np.dot(self.genTwiss6DcovVec,[self.genX,self.genXP,self.genY,self.genYP,self.genZ,self.genZP])
 
 
-    def GenBeamTranslation4D(self):
-        pass
+    def GenBeamTranslation4D(self):           # 生成束流时候，用于束流平移　　＠　４Ｄ
+        self.genX+=self.genXs 
+        self.genXP+=self.genXPs
+        self.genY+=self.genYs
+        self.genYP+=self.genYPs
+    
+    def GenBeamTranslationZ(self):      # 生成束流时候，用于束流平移　　＠　Z   
+        self.genZ+=self.genZs
+    
+    def GenBeamTranslationDpp(self):      # 生成束流时候，用于束流平移　　＠　Dpp
+        self.genDpp+=self.genDPPs
 
-    def GenBeamTranslation6D(self):
-        pass
+
+    def GenBeamTranslation6D(self):           # 生成束流时候，用于束流平移　　＠　６ｄ
+        self.genX+=self.genXs 
+        self.genXP+=self.genXPs
+        self.genY+=self.genYs
+        self.genYP+=self.genYPs
+        self.genZ+=self.genZs
+        self.genZP+=self.genZPs
+
+    #################################################################
 
 
     #################################################################
@@ -248,6 +285,17 @@ class Beam():
             self.GenBeamExtension4D()
             self.GenBeamRotation4D()
 
+            self.GenBeamExtensionZ()
+            self.GenBeamExtensionDpp()
+
+            self.GenBeamTranslation4D()
+            self.GenBeamTranslationZ()
+            self.GenBeamTranslationDpp()
+
+
+
+
+
         if self.genBeamDist=='K4dUzGdpp':
             self.GenK4dUzGdpp()
 
@@ -263,6 +311,15 @@ class Beam():
             self.GenBeamExtension4D()
             self.GenBeamRotation4D()
 
+            self.GenBeamExtensionZ()
+            self.GenBeamExtensionDpp()
+
+            self.GenBeamTranslation4D()
+            self.GenBeamTranslationZ()
+            self.GenBeamTranslationDpp()
+
+
+
         if self.genBeamDist=='W4dUzGdpp':
             self.GenW4dUzGdpp()
 
@@ -277,6 +334,14 @@ class Beam():
 
             self.GenBeamExtension4D()
             self.GenBeamRotation4D()
+
+            self.GenBeamExtensionZ()
+            self.GenBeamExtensionDpp()
+
+            self.GenBeamTranslation4D()
+            self.GenBeamTranslationZ()
+            self.GenBeamTranslationDpp()
+
 
         if self.genBeamDist=='G6d':
             self.GenG6d()
@@ -294,6 +359,8 @@ class Beam():
             self.GenBeamExtension6D()
             self.GenBeamRotation6D()
 
+            self.GenBeamTranslation6D()
+
 
         if self.genBeamDist=='W6d':
             self.GenW6d()
@@ -310,6 +377,11 @@ class Beam():
     
             self.GenBeamExtension6D()
             self.GenBeamRotation6D()
+
+            self.GenBeamTranslation6D()
+
+        
+
 
 
     ###########################################################
@@ -480,6 +552,13 @@ if __name__=="__main__":
     myBeam.SetGenEmitNormY(0.22)
     myBeam.SetGenEmitNormZ(0.25)
 
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
+
     myBeam.BeamGen()
 
     plt.figure('gs-6d')
@@ -524,8 +603,14 @@ if __name__=="__main__":
     myBeam.SetStatBeamDist('xyz')
     myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
     print(myBeam.BeamStatRMS())   
+    
     '''
+
     #################################################################
+    
+
+    
+    
     '''
     #----- 测试WB　６Ｄ  束流　生成
     myBeam.SetAMU(938.272)
@@ -541,6 +626,14 @@ if __name__=="__main__":
     myBeam.SetGenEmitNormX(0.22)
     myBeam.SetGenEmitNormY(0.22)
     myBeam.SetGenEmitNormZ(0.25)
+
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
 
     myBeam.BeamGen()
 
@@ -642,6 +735,9 @@ if __name__=="__main__":
 
     plt.show()
     '''
+    #################################################
+
+    '''
     #----- 测试　W4dUzGdpp  束流　生成
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('W4dUzGdpp')
@@ -677,5 +773,9 @@ if __name__=="__main__":
     plt.axis('equal')
 
     plt.show()
+    '''
 
 print('END')
+
+
+
