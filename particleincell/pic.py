@@ -78,8 +78,14 @@ class Beam():
         self.beamDpp=beamDpp
 
     #-------------------------------------------------
-    def SetBeamDist(self,beamDist):      # 设置束流分布类型
-        self.beamDist=beamDist
+    def SetBeamGenDist(self,beamGenDist):      # 设置生成束流分布类型
+        self.beamGenDist=beamGenDist
+
+    def SetBeamStatisticDist(self,beamStatisticDist):
+        self.beamStatisticDist=beamStatisticDist
+
+
+
         
     #####################################################################
     #--------------------------------------------
@@ -227,11 +233,10 @@ class Beam():
         pass
 
 
-
-
+    #################################################################
     #---------------------------------------------
     def BeamGen(self):
-        if self.beamDist=="G4dUzGdpp":
+        if self.beamGenDist=="G4dUzGdpp":
             self.G4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
@@ -245,7 +250,7 @@ class Beam():
             self.CalBeamExtension4D()
             self.CalBeamRotation4D()
 
-        if self.beamDist=='G6d':
+        if self.beamGenDist=='G6d':
             self.G6d()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
@@ -261,7 +266,7 @@ class Beam():
             self.CalBeamExtension6D()
             self.CalBeamRotation6D()
 
-        if self.beamDist=='K4dUzGdpp':
+        if self.beamGenDist=='K4dUzGdpp':
             self.K4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
@@ -275,7 +280,7 @@ class Beam():
             self.CalBeamExtension4D()
             self.CalBeamRotation4D()
 
-        if self.beamDist=='W6d':
+        if self.beamGenDist=='W6d':
             self.W6d()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
@@ -291,7 +296,7 @@ class Beam():
             self.CalBeamExtension6D()
             self.CalBeamRotation6D()
 
-        if self.beamDist=='W4dUzGdpp':
+        if self.beamGenDist=='W4dUzGdpp':
             self.W4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
@@ -306,16 +311,52 @@ class Beam():
             self.CalBeamRotation4D()
 
 
+    ###########################################################3
+    #---------------------------------------------
+    def StatisticBeamMeanX(self):
+        self.xMean=self.x.mean()
+    def StatisticBeamMeanXP(self):
+        self.xpMean=self.xp.mean()
 
+    def StatisticBeamMeanY(self):
+        self.yMean=self.y.mean()
+    def StatisticBeamMeanYP(self):
+        self.ypMean=self.yp.mean()
 
+    def StatisticBeamMeanZ(self):
+        self.zMean=self.z.mean()
+    def StatisticBeamMeanZP(self):
+        self.zpMean=self.zp.mean()
+
+    #---------------------------------------------
+
+    def StatisticBeamCovX(self):
+        self.xCov=np.cov([self.x,self.xp])
+
+    def StatisticBeamCovY(self):
+        self.yCov=np.cov([self.y,self.yp])    
+
+    def StatisticBeamCovZ(self):
+        self.zCov=np.cov([self.z,self.zp])  
+
+    def StatisticBeamCovXY(self):
+        self.xyCov=np.cov([self.x,self.xp,self.y,self.yp])
+
+    def StatisticBeamCovXYZ(self):
+        self.xyzCov=np.cov([self.x,self.xp,self.y,self.yp,self.z,self.zp])
+
+    def BeamStatistic(self):
+        if self.beamStatisticDist=='':
+            pass
 
 
 if __name__=="__main__":
     myBeam=Beam()
 
+    
     #----- 测试ＧＳ　６Ｄ
     myBeam.SetAMU(938.272)
-    myBeam.SetBeamDist('G6d')
+    myBeam.SetBeamGenDist('G6d')
     myBeam.SetEs(0.035)
     myBeam.SetNumPart(1e5)
     myBeam.SetTwissAlphaX(-1)
@@ -347,10 +388,6 @@ if __name__=="__main__":
     plt.plot(myBeam.x,myBeam.y,'.')
     plt.grid('on')
     plt.axis('equal')
-
-
-
-
 
     plt.show()
 

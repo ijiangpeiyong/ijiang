@@ -50,16 +50,11 @@ print(y2)
 print(y21)
 print(y22)
 
+print(np.cov([y21.T,y22.T]))
+
+print(np.cov([y21,y22]))
 
 
-'''
 
-b1,b2=np.linalg.eig(a)
 
-print(b1)
-print(b2)
 
-c=np.diag(b1)
-
-print(b2.T.dot(c).dot(b2))
-'''
