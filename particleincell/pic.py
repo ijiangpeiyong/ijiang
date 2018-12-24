@@ -154,7 +154,7 @@ class Beam():
         cov=[[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]]
         self.x, self.xp, self.y ,self.yp,self.z,self.p = np.random.multivariate_normal(mean, cov, self.numPart).T
 
-    def K4dUzGp(self):   # xy的4个方向是 KV 4d，z方向是均匀的，dpp是gs的。
+    def K4dUzGdpp(self):   # xy的4个方向是 KV 4d，z方向是均匀的，dpp是gs的。
         self.K4d()
         self.Uz()
         self.Gdpp()
@@ -168,7 +168,7 @@ class Beam():
         self.x, self.xp, self.y ,self.yp,self.z,self.p=dataRandom[0:self.numPart,0],dataRandom[0:self.numPart,1],dataRandom[0:self.numPart,2],dataRandom[0:self.numPart,3],dataRandom[0:self.numPart,4],dataRandom[0:self.numPart,5]
 
 
-    def W4dUzGp(self):   # xy的4个方向是 WB 4d，z方向是均匀的，dpp是gs的。
+    def W4dUzGdpp(self):   # xy的4个方向是 WB 4d，z方向是均匀的，dpp是gs的。
         self.W4d()
         self.Uz()
         self.Gdpp()
@@ -176,16 +176,39 @@ class Beam():
     ####################################################################
     #---------------------------------------------
 
-    def Twiss4D(self):
-        pass
+    def CalTwiss4DMatrix(self):
+        self.twiss4DMatrix=np.array([[self.emitNatureX*self.twissBetaX,-self.emitNatureX*self.twissAlphaX,0.,0.],
+        [-self.emitNatureX*self.twissAlphaX,self.emitNatureX*self.twissGammaX,0.,0.],
+        [-0.,0.,self.emitNatureY*self.twissBetaY,-self.emitNatureY*self.twissAlphaY],
+        [-0.,0.,-self.emitNatureY*self.twissAlphaY,self.emitNatureY*self.twissGammaY]])
+ 
+    def CalTwiss6DMatrix(self):
+        self.twiss6DMatrix=np.array([[self.emitNatureX*self.twissBetaX,-self.emitNatureX*self.twissAlphaX,0.,0.,0.,0.],
+        [-self.emitNatureX*self.twissAlphaX,self.emitNatureX*self.twissGammaX,0.,0.,0.,0.],
+        [-0.,0.,self.emitNatureY*self.twissBetaY,-self.emitNatureY*self.twissAlphaY,0.,0.],
+        [-0.,0.,-self.emitNatureY*self.twissAlphaY,self.emitNatureY*self.twissGammaY,0.,0.],
+        [-0.,0.,0.,0.,self.emitNatureZ*self.twissBetaZ,-self.emitNatureZ*self.twissAlphaZ],
+        [-0.,0.,0.,0.,-self.emitNatureZ*self.twissAlphaZ,self.emitNatureZ*self.twissGammaZ]])
 
+
+    def CalTwiss4DMatrixEigen(self):
+        self.twiss4DMatrixEig,self.twiss4DMatrixVec=np.linalg.eig(self.twiss4DMatrix)
+        self.twiss4DMatrixEigDiagSqrt=np.diag(np.sqrt(self.twiss4DMatrixEig))
+        
+
+    def CalTwiss6DMatrixEigen(self):
+        self.twiss6DMatrixEig,self.twiss6DMatrixVec=np.linalg.eig(self.twiss6DMatrix)
+        self.twiss6DMatrixEigDiagSqrt=np.diag(np.sqrt(self.twiss6DMatrixEig))
 
     #---------------------------------------------
     def BeamGen(self):
-        if self.beamDist=="G4dUzGp":
-            self.G4dUzGp()
+        if self.beamDist=="G4dUzGdpp":
+            self.G4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
+
+            self.CalTwiss4DMatrix()
+            self.CalTwiss4DMatrixEigen()
 
         if self.beamDist=='G6d':
             self.G6d()
@@ -193,10 +216,16 @@ class Beam():
             self.CalTwissGammaY()
             self.CalTwissGammaZ()
 
-        if self.beamDist=='K4dUzGp':
-            self.K4dUzGp()
+            self.CalTwiss6DMatrix()
+            self.CalTwiss6DMatrixEigen()
+
+        if self.beamDist=='K4dUzGdpp':
+            self.K4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
+
+            self.CalTwiss4DMatrix()
+            self.CalTwiss4DMatrixEigen()
 
         if self.beamDist=='W6d':
             self.W6d()
@@ -204,10 +233,16 @@ class Beam():
             self.CalTwissGammaY()
             self.CalTwissGammaZ()
 
-        if self.beamDist=='W4dUzGp':
-            self.W4dUzGp()
+            self.CalTwiss6DMatrix()
+            self.CalTwiss6DMatrixEigen()
+
+        if self.beamDist=='W4dUzGdpp':
+            self.W4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
+
+            self.CalTwiss4DMatrix()
+            self.CalTwiss4DMatrixEigen()
 
 
 
