@@ -3,6 +3,7 @@
 
 import numpy as np
 from scipy import constants as const
+import matplotlib.pyplot as plt
 
 class Beam():
     def __init__(self):  # 初始化
@@ -91,12 +92,18 @@ class Beam():
 
     #-------------------------------------------
     def CalEmitNatureX(self):     #　　计算束流的自然发射度　X
+        self.CalGammaCs()
+        self.CalBetaCs()
         self.emitNatureX=self.emitNormX/(self.gammaCs*self.betaCs)
         
     def CalEmitNatureY(self):     #　　计算束流的自然发射度　Y
+        self.CalGammaCs()
+        self.CalBetaCs()
         self.emitNatureY=self.emitNormY/(self.gammaCs*self.betaCs)
 
     def CalEmitNatureZ(self):     #　　计算束流的自然发射度　Z
+        self.CalGammaCs()
+        self.CalBetaCs()
         self.emitNatureZ=self.emitNormZ/(self.gammaCs**3*self.betaCs)    
 
     #--------------------------------------------
@@ -152,7 +159,7 @@ class Beam():
     def G6d(self):      # xyz六个方向都是gs的
         mean=[0,0,0,0,0,0]
         cov=[[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0],[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1]]
-        self.x, self.xp, self.y ,self.yp,self.z,self.p = np.random.multivariate_normal(mean, cov, self.numPart).T
+        self.x, self.xp, self.y ,self.yp,self.z,self.zp = np.random.multivariate_normal(mean, cov, self.numPart).T
 
     def K4dUzGdpp(self):   # xy的4个方向是 KV 4d，z方向是均匀的，dpp是gs的。
         self.K4d()
@@ -165,7 +172,7 @@ class Beam():
         r=dataRandom[:,0]**2+dataRandom[:,1]**2+dataRandom[:,2]**2+dataRandom[:,3]**2+dataRandom[:,4]**2+dataRandom[:,5]**2
         indexR=r<1.
         dataRandom=dataRandom[indexR,:]
-        self.x, self.xp, self.y ,self.yp,self.z,self.p=dataRandom[0:self.numPart,0],dataRandom[0:self.numPart,1],dataRandom[0:self.numPart,2],dataRandom[0:self.numPart,3],dataRandom[0:self.numPart,4],dataRandom[0:self.numPart,5]
+        self.x, self.xp, self.y ,self.yp,self.z,self.zp=dataRandom[0:self.numPart,0],dataRandom[0:self.numPart,1],dataRandom[0:self.numPart,2],dataRandom[0:self.numPart,3],dataRandom[0:self.numPart,4],dataRandom[0:self.numPart,5]
 
 
     def W4dUzGdpp(self):   # xy的4个方向是 WB 4d，z方向是均匀的，dpp是gs的。
@@ -176,13 +183,13 @@ class Beam():
     ####################################################################
     #---------------------------------------------
 
-    def CalTwiss4DMatrix(self):
+    def CalTwiss4DMatrix(self):      # 得到用于生成束流分布的４Ｄ　ｃｏｖ矩阵
         self.twiss4DMatrix=np.array([[self.emitNatureX*self.twissBetaX,-self.emitNatureX*self.twissAlphaX,0.,0.],
         [-self.emitNatureX*self.twissAlphaX,self.emitNatureX*self.twissGammaX,0.,0.],
         [-0.,0.,self.emitNatureY*self.twissBetaY,-self.emitNatureY*self.twissAlphaY],
         [-0.,0.,-self.emitNatureY*self.twissAlphaY,self.emitNatureY*self.twissGammaY]])
  
-    def CalTwiss6DMatrix(self):
+    def CalTwiss6DMatrix(self):      # 得到用于生成束流分布的６Ｄ　ｃｏｖ矩阵
         self.twiss6DMatrix=np.array([[self.emitNatureX*self.twissBetaX,-self.emitNatureX*self.twissAlphaX,0.,0.,0.,0.],
         [-self.emitNatureX*self.twissAlphaX,self.emitNatureX*self.twissGammaX,0.,0.,0.,0.],
         [-0.,0.,self.emitNatureY*self.twissBetaY,-self.emitNatureY*self.twissAlphaY,0.,0.],
@@ -191,14 +198,36 @@ class Beam():
         [-0.,0.,0.,0.,-self.emitNatureZ*self.twissAlphaZ,self.emitNatureZ*self.twissGammaZ]])
 
 
-    def CalTwiss4DMatrixEigen(self):
+    def CalTwiss4DMatrixEigen(self):       # 对用于生成束流分布的４ｄ　ｃｏｖ矩阵进行本征分析
         self.twiss4DMatrixEig,self.twiss4DMatrixVec=np.linalg.eig(self.twiss4DMatrix)
         self.twiss4DMatrixEigDiagSqrt=np.diag(np.sqrt(self.twiss4DMatrixEig))
         
 
-    def CalTwiss6DMatrixEigen(self):
-        self.twiss6DMatrixEig,self.twiss6DMatrixVec=np.linalg.eig(self.twiss6DMatrix)
-        self.twiss6DMatrixEigDiagSqrt=np.diag(np.sqrt(self.twiss6DMatrixEig))
+    def CalTwiss6DMatrixEigen(self):       # 对用于生成束流分布的６ｄ　ｃｏｖ矩阵进行本征分析
+        twiss6DMatrixEig,self.twiss6DMatrixVec=np.linalg.eig(self.twiss6DMatrix)
+        self.twiss6DMatrixEigDiagSqrt=np.diag(np.sqrt(twiss6DMatrixEig))
+
+    def CalBeamExtension4D(self):          # 生成束流时候，用于束流拉伸　　＠　４Ｄ
+        self.x,self.xp,self.y,self.yp=np.dot(self.twiss6DMatrixEigDiagSqrt,[self.x,self.xp,self.y,self.yp])
+    
+    def CalBeamExtension6D(self):         # 生成束流时候，用于束流拉伸　　＠　６Ｄ
+        self.x,self.xp,self.y,self.yp,self.z,self.zp=np.dot(self.twiss6DMatrixEigDiagSqrt,[self.x,self.xp,self.y,self.yp,self.z,self.zp])
+
+    def CalBeamRotation4D(self):         # 生成束流时候，用于束流旋转　　＠　４Ｄ
+        self.x,self.xp,self.y,self.yp=np.dot(self.twiss6DMatrixVec,[self.x,self.xp,self.y,self.yp])
+
+    def CalBeamRotation6D(self):        # 生成束流时候，用于束流旋转　　＠　６Ｄ
+        self.x,self.xp,self.y,self.yp,self.z,self.zp=np.dot(self.twiss6DMatrixVec,[self.x,self.xp,self.y,self.yp,self.z,self.zp])
+
+
+    def CalBeamTranslation4D(self):
+        pass
+
+    def CalBeamTranslation6D(self):
+        pass
+
+
+
 
     #---------------------------------------------
     def BeamGen(self):
@@ -207,8 +236,14 @@ class Beam():
             self.CalTwissGammaX()
             self.CalTwissGammaY()
 
+            self.CalEmitNatureX()
+            self.CalEmitNatureY()
+
             self.CalTwiss4DMatrix()
             self.CalTwiss4DMatrixEigen()
+
+            self.CalBeamExtension4D()
+            self.CalBeamRotation4D()
 
         if self.beamDist=='G6d':
             self.G6d()
@@ -216,16 +251,29 @@ class Beam():
             self.CalTwissGammaY()
             self.CalTwissGammaZ()
 
+            self.CalEmitNatureX()
+            self.CalEmitNatureY()
+            self.CalEmitNatureZ()
+            
             self.CalTwiss6DMatrix()
             self.CalTwiss6DMatrixEigen()
+
+            self.CalBeamExtension6D()
+            self.CalBeamRotation6D()
 
         if self.beamDist=='K4dUzGdpp':
             self.K4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
 
+            self.CalEmitNatureX()
+            self.CalEmitNatureY()
+
             self.CalTwiss4DMatrix()
             self.CalTwiss4DMatrixEigen()
+
+            self.CalBeamExtension4D()
+            self.CalBeamRotation4D()
 
         if self.beamDist=='W6d':
             self.W6d()
@@ -233,17 +281,29 @@ class Beam():
             self.CalTwissGammaY()
             self.CalTwissGammaZ()
 
+            self.CalEmitNatureX()
+            self.CalEmitNatureY()
+            self.CalEmitNatureZ()
+
             self.CalTwiss6DMatrix()
             self.CalTwiss6DMatrixEigen()
+    
+            self.CalBeamExtension6D()
+            self.CalBeamRotation6D()
 
         if self.beamDist=='W4dUzGdpp':
             self.W4dUzGdpp()
             self.CalTwissGammaX()
             self.CalTwissGammaY()
 
+            self.CalEmitNatureX()
+            self.CalEmitNatureY()
+
             self.CalTwiss4DMatrix()
             self.CalTwiss4DMatrixEigen()
 
+            self.CalBeamExtension4D()
+            self.CalBeamRotation4D()
 
 
 
@@ -251,10 +311,50 @@ class Beam():
 
 
 if __name__=="__main__":
-    beam1=Beam()
-    
+    myBeam=Beam()
 
-    pass
+    #----- 测试ＧＳ　６Ｄ
+    myBeam.SetAMU(938.272)
+    myBeam.SetBeamDist('G6d')
+    myBeam.SetEs(0.035)
+    myBeam.SetNumPart(1e5)
+    myBeam.SetTwissAlphaX(-1)
+    myBeam.SetTwissBetaX(1)
+    myBeam.SetTwissAlphaY(1)
+    myBeam.SetTwissBetaY(1)
+    myBeam.SetTwissAlphaZ(0)
+    myBeam.SetTwissBetaZ(1)
+    myBeam.SetEmitNormX(0.22)
+    myBeam.SetEmitNormY(0.22)
+    myBeam.SetEmitNormZ(0.25)
+
+    myBeam.BeamGen()
+
+    plt.figure('gs-6d')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.xp,'.')
+    plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.yp,'.')
+    plt.grid('on')
+    plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.zp,'.')
+    plt.grid('on')
+    plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+
+
+
+
+    plt.show()
+
+    
 
 
 
