@@ -345,8 +345,14 @@ class Beam():
     def StatisticBeamCovXYZ(self):
         self.xyzCov=np.cov([self.x,self.xp,self.y,self.yp,self.z,self.zp])
 
-    def BeamStatistic(self):
-        if self.beamStatisticDist=='':
+    def BeamStatisticRMS(self):
+        if (self.beamStatisticDist=='G4dUzGdpp') or (self.beamStatisticDist=='K4dUzGdpp') or (self.beamStatisticDist=='W4dUzGdpp'):
+            
+            
+            pass
+
+
+        if (self.beamStatisticDist=='G6d') or (self.beamStatisticDist=='W6d') :
             pass
 
 
