@@ -264,6 +264,13 @@ class Beam():
         self.genZP+=self.genZPs
 
     #################################################################
+    # 从各种不同坐标下的分布，获得统一的、用于程序内部的　ｘ－ｐ数据。单位是ｍｍ和betaC*gammaC
+    def GenBeamUnifyCoordinate4D(self):
+        pass
+    
+     def GenBeamUnifyCoordinate6D(self):
+        pass   
+
 
 
     #################################################################
@@ -292,6 +299,10 @@ class Beam():
             self.GenBeamTranslationZ()
             self.GenBeamTranslationDpp()
 
+            
+
+            
+
 
 
 
@@ -317,6 +328,8 @@ class Beam():
             self.GenBeamTranslation4D()
             self.GenBeamTranslationZ()
             self.GenBeamTranslationDpp()
+
+
 
 
 
@@ -536,7 +549,7 @@ if __name__=="__main__":
     myBeam=Beam()
 
     ###########################################################################
-    #'''
+    '''
     #----- 测试ＧＳ　６Ｄ  束流　生成
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G6d')
@@ -579,7 +592,7 @@ if __name__=="__main__":
     plt.grid('on')
     plt.axis('equal')
 
-    #plt.show()
+    plt.show()
 
     #----- 测试ＧＳ　  束流　统计
     myBeam.SetStatBeamDist('x')
@@ -604,7 +617,7 @@ if __name__=="__main__":
     myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
     print(myBeam.BeamStatRMS())   
     
-    #'''
+    '''
 
     #################################################################
     
@@ -669,10 +682,28 @@ if __name__=="__main__":
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
     myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(1)
+    myBeam.SetGenBeamLength(360)
     myBeam.SetGenBeamDpp(0.01)
     myBeam.SetGenEmitNormX(0.22)
     myBeam.SetGenEmitNormY(0.22)
+
+    myBeam.SetGenFreq(162.5)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenDPPs()
+    myBeam.SetGenFreq(162.5)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenDPPs()
+
 
     myBeam.BeamGen()
 
@@ -688,7 +719,7 @@ if __name__=="__main__":
     plt.subplot(223)
     plt.plot(myBeam.genZ,myBeam.genDpp,'.')
     plt.grid('on')
-    plt.axis('equal')
+    #plt.axis('equal')
     plt.subplot(224)
     plt.plot(myBeam.genX,myBeam.genY,'.')
     plt.grid('on')
@@ -708,10 +739,20 @@ if __name__=="__main__":
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
     myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(1)
+    myBeam.SetGenBeamLength(360)
     myBeam.SetGenBeamDpp(0.01)
     myBeam.SetGenEmitNormX(0.22)
     myBeam.SetGenEmitNormY(0.22)
+
+    myBeam.SetGenFreq(162.5)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenDPPs()
+
 
     myBeam.BeamGen()
 
@@ -727,7 +768,7 @@ if __name__=="__main__":
     plt.subplot(223)
     plt.plot(myBeam.genZ,myBeam.genDpp,'.')
     plt.grid('on')
-    plt.axis('equal')
+    #plt.axis('equal')
     plt.subplot(224)
     plt.plot(myBeam.genX,myBeam.genY,'.')
     plt.grid('on')
@@ -737,7 +778,7 @@ if __name__=="__main__":
     '''
     #################################################
 
-    '''
+    #'''
     #----- 测试　W4dUzGdpp  束流　生成
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('W4dUzGdpp')
@@ -747,10 +788,20 @@ if __name__=="__main__":
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
     myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(1)
+    myBeam.SetGenBeamLength(360)
     myBeam.SetGenBeamDpp(0.01)
     myBeam.SetGenEmitNormX(0.22)
     myBeam.SetGenEmitNormY(0.22)
+
+    myBeam.SetGenFreq(162.5)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenDPPs(0)
+
 
     myBeam.BeamGen()
 
@@ -766,14 +817,14 @@ if __name__=="__main__":
     plt.subplot(223)
     plt.plot(myBeam.genZ,myBeam.genDpp,'.')
     plt.grid('on')
-    plt.axis('equal')
+    #plt.axis('equal')
     plt.subplot(224)
     plt.plot(myBeam.genX,myBeam.genY,'.')
     plt.grid('on')
     plt.axis('equal')
 
     plt.show()
-    '''
+    #'''
 
 print('END')
 
