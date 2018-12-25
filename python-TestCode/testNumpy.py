@@ -24,3 +24,15 @@ print(x1,x2,x3,x4)
 from scipy import constants as const
 
 print(const.c)
+
+print(dataRandom[:,0].std())
+
+print(dataRandom[:,0].var())
+
+print(eval('dataRandom[:,0].var()'))
+
+
+print(eval('np.linalg.cov(dataRandom[:,0:2])'))
+
+
+np.linalg

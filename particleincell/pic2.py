@@ -4,6 +4,7 @@
 import numpy as np
 from scipy import constants as const
 import matplotlib.pyplot as plt
+import multiprocessing as mp
 
 class Beam():
     def __init__(self):  # 初始化
@@ -263,19 +264,10 @@ class Beam():
         self.genZ+=self.genZs
         self.genZP+=self.genZPs
 
-    #################################################################
-    # 从各种不同坐标下的分布，获得统一的、用于程序内部的　ｘ－ｐ数据。单位是ｍｍ和betaC*gammaC
-    def GenBeamUnifyCoordinate4D(self):
-        pass
-    
-     def GenBeamUnifyCoordinate6D(self):
-        pass   
-
-
 
     #################################################################
     #---------------------------------------------
-    def BeamGen(self):
+    def GenBeamOnDist(self):        # 根据束流分布类型，获得ｘ－ｐｘ－ｙ－ｐｙ－ｚ－ｐｚ
         if self.genBeamDist=="G4dUzGdpp":
             # G4D:
             self.GenG4dUzGdpp()
@@ -299,13 +291,20 @@ class Beam():
             self.GenBeamTranslationZ()
             self.GenBeamTranslationDpp()
 
-            
+            self.GenGammaCs()
+            self.GenBetaCs()
+            self.GenPs()
 
-            
+            self.z=self.genZ           #  [mm]
+            self.pz=self.genPs*(1.0+self.genDpp)    # [betaC * gammaC]
 
+            self.x=self.genX          #    [mm]
+            self.px=self.pz*self.genXP/1000.       # [betaC * gammaC]
 
+            self.y=self.genY         #     [mm]
+            self.py=self.pz*self.genYP/1000.       # [betaC * gammaC]
 
-
+    
 
         if self.genBeamDist=='K4dUzGdpp':
             self.GenK4dUzGdpp()
@@ -329,6 +328,18 @@ class Beam():
             self.GenBeamTranslationZ()
             self.GenBeamTranslationDpp()
 
+            self.GenGammaCs()
+            self.GenBetaCs()
+            self.GenPs()
+
+            self.z=self.genZ           #  [mm]
+            self.pz=self.genPs*(1.0+self.genDpp)    # [betaC * gammaC]
+
+            self.x=self.genX          #    [mm]
+            self.px=self.pz*self.genXP/1000.       # [betaC * gammaC]
+
+            self.y=self.genY         #     [mm]
+            self.py=self.pz*self.genYP/1000.       # [betaC * gammaC]
 
 
 
@@ -355,6 +366,19 @@ class Beam():
             self.GenBeamTranslationZ()
             self.GenBeamTranslationDpp()
 
+            self.GenGammaCs()
+            self.GenBetaCs()
+            self.GenPs()
+
+            self.z=self.genZ           #  [mm]
+            self.pz=self.genPs*(1.0+self.genDpp)    # [betaC * gammaC]
+
+            self.x=self.genX          #    [mm]
+            self.px=self.pz*self.genXP/1000.       # [betaC * gammaC]
+
+            self.y=self.genY         #     [mm]
+            self.py=self.pz*self.genYP/1000.       # [betaC * gammaC]
+
 
         if self.genBeamDist=='G6d':
             self.GenG6d()
@@ -375,6 +399,22 @@ class Beam():
             self.GenBeamTranslation6D()
 
 
+            self.GenGammaCs()
+            self.GenBetaCs()
+            self.GenPs()
+
+            self.z=self.genZ           #  [mm]
+            self.pz=self.genPs*(1.0+self.genZP/1000.)    # [betaC * gammaC]
+
+            self.x=self.genX          #    [mm]
+            self.px=self.pz*self.genXP/1000.       # [betaC * gammaC]
+
+            self.y=self.genY         #     [mm]
+            self.py=self.pz*self.genYP/1000.       # [betaC * gammaC]
+
+
+
+
         if self.genBeamDist=='W6d':
             self.GenW6d()
             self.GenTwissGammaX()
@@ -393,7 +433,28 @@ class Beam():
 
             self.GenBeamTranslation6D()
 
-        
+
+            self.GenGammaCs()
+            self.GenBetaCs()
+            self.GenPs()
+
+            self.z=self.genZ           #  [mm]
+            self.pz=self.genPs*(1.0+self.genZP/1000.)    # [betaC * gammaC]
+
+            self.x=self.genX          #    [mm]
+            self.px=self.pz*self.genXP/1000.       # [betaC * gammaC]
+
+            self.y=self.genY         #     [mm]
+            self.py=self.pz*self.genYP/1000.       # [betaC * gammaC]        
+
+
+    #########################################################################################
+    def BeamGen(self):
+        self.GenBeamOnDist()
+
+        self.BeamTrans()
+
+        return([self.x,self.px,self.y,self.py,self.z,self.pz,self.xp,self.yp,self.zp])
 
 
 
@@ -541,6 +602,152 @@ class Beam():
 
             return  [x0,xp0,y0,yp0,z0,zp0,emit6d, self.statXYZcov]
 
+    def GetStatBeamMean(self,coordinate='x'):
+        if coordinate=='x':
+            return self.x.mean()
+        if coordinate=='px':
+            return self.px.mean()
+        if coordinate=='xp':
+            return self.xp.mean()
+        if coordinate=='y':
+            return self.y.mean()
+        if coordinate=='py':
+            return self.py.mean()
+        if coordinate=='yp':
+            return self.yp.mean()
+        if coordinate=='z':
+            return self.z.mean()
+        if coordinate=='pz':
+            return self.pz.mean()  
+        if coordinate=='zp':
+            return self.zp.mean()  
+
+
+    def GetStatBeamStd(self,coordinate='x'):        
+        if coordinate=='x':
+            return self.x.std()
+        if coordinate=='px':
+            return self.px.std()
+        if coordinate=='xp':
+            return self.xp.std()            
+        if coordinate=='y':
+            return self.y.std()
+        if coordinate=='py':
+            return self.py.std()
+        if coordinate=='yp':
+            return self.yp.std()
+        if coordinate=='z':
+            return self.z.std()
+        if coordinate=='pz':
+            return self.pz.std()      
+        if coordinate=='zp':
+            return self.zp.std()           
+            
+    def GetStatBeamVar(self,coordinate='x'):        
+        if coordinate=='x':
+            return self.x.var()
+        if coordinate=='px':
+            return self.px.var()
+        if coordinate=='xp':
+            return self.xp.var()
+        if coordinate=='y':
+            return self.y.var()
+        if coordinate=='py':
+            return self.py.var()
+        if coordinate=='yp':
+            return self.yp.var()
+        if coordinate=='z':
+            return self.z.var()
+        if coordinate=='pz':
+            return self.pz.var()   
+        if coordinate=='zp':
+            return self.zp.var()   
+
+
+    def GetStatBeamCov(self,coordinates=['x','xp']):   
+        x=[] 
+        for iCoor in coordinates:
+            x.append(eval('self.'+iCoor))
+        return np.cov(x)
+
+    def GetStatBeamEmitNatureRMS(self,coordinate='x'):
+        if coordinate=='x':
+            cov=self.GetStatBeamCov(['x','xp'])
+            return np.sqrt(np.linalg.det(cov))
+        if coordinate=='y':
+            cov=self.GetStatBeamCov(['y','yp'])
+            return np.sqrt(np.linalg.det(cov))
+        if coordinate=='z':
+            cov=self.GetStatBeamCov(['y','yp'])
+            return np.sqrt(np.linalg.det(cov))    
+
+    def GetStatBeamEmitNormRMS(self,coordinate='x'):
+        emitNature=self.GetStatBeamEmitNatureRMS(coordinate)
+        pz0=self.GetStatBeamMean('pz')
+        gammaC=np.sqrt(1.+pz0**2)
+        if (coordinate=='x') or (coordinate=='y'):
+            emitNorm= emitNature*pz0
+        if coordinate=='z':
+            emitNorm= emitNature*pz0*gammaC**2
+        return emitNorm
+    
+    def GetStatBeamBeta(self,coordinate='x'):
+        if coordinate=='x':
+            cov=self.GetStatBeamCov(['x','xp'])
+        if coordinate=='y':
+            cov=self.GetStatBeamCov(['y','yp'])
+        if coordinate=='z':
+            cov=self.GetStatBeamCov(['y','yp'])
+
+        emitNature=np.sqrt(np.linalg.det(cov))
+        beta=cov[0,0]/emitNature
+
+        return beta         
+
+    def GetStatBeamAlpha(self,coordinate='x'):
+        if coordinate=='x':
+            cov=self.GetStatBeamCov(['x','xp'])
+        if coordinate=='y':
+            cov=self.GetStatBeamCov(['y','yp'])
+        if coordinate=='z':
+            cov=self.GetStatBeamCov(['y','yp'])
+
+        emitNature=np.sqrt(np.linalg.det(cov))
+        alpha=-cov[0,1]/emitNature
+
+        return alpha         
+
+    def GetStatBeamGamma(self,coordinate='x'):
+        if coordinate=='x':
+            cov=self.GetStatBeamCov(['x','xp'])
+        if coordinate=='y':
+            cov=self.GetStatBeamCov(['y','yp'])
+        if coordinate=='z':
+            cov=self.GetStatBeamCov(['y','yp'])
+
+        emitNature=np.sqrt(np.linalg.det(cov))
+        gamma=cov[1,1]/emitNature
+
+        return gamma 
+
+
+
+
+  
+    ############################################################
+    ##   Trans 
+    ############################################################
+    def TransBeamPX2XP(self,x,px,y,py,z,pz):
+        pz0=pz.mean()
+        zp=(pz-pz0)/pz0*1000.
+        xp=px/pz*1000.
+        yp=py/pz*1000.
+        return x,xp,y,yp,z,zp
+
+    def BeamTrans(self):
+        self.x,self.xp,self.y,self.yp,self.z,self.zp=self.TransBeamPX2XP(self.x,self.px,self.y,self.py,self.z,self.pz)
+
+
 
 
 
@@ -592,7 +799,25 @@ if __name__=="__main__":
     plt.grid('on')
     plt.axis('equal')
 
-    plt.show()
+    plt.figure('gs　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+    #plt.show()
 
     #----- 测试ＧＳ　  束流　统计
     myBeam.SetStatBeamDist('x')
@@ -617,13 +842,25 @@ if __name__=="__main__":
     myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
     print(myBeam.BeamStatRMS())   
     
+    print('#'*50)
+
+    print(myBeam.GetStatBeamMean('xp'))
+    print(myBeam.GetStatBeamStd('xp'))
+    print(myBeam.GetStatBeamVar('xp'))
+    print(myBeam.GetStatBeamCov(['x','xp']))
+
+    print(myBeam.GetStatBeamEmitNatureRMS('x'))
+    print(myBeam.GetStatBeamEmitNormRMS('x'))
+    print(myBeam.GetStatBeamBeta('x'))
+    print(myBeam.GetStatBeamAlpha('x'))
+    print(myBeam.GetStatBeamGamma('x'))
+
+
+
     '''
 
     #################################################################
-    
 
-    
-    
     '''
     #----- 测试WB　６Ｄ  束流　生成
     myBeam.SetAMU(938.272)
@@ -668,6 +905,26 @@ if __name__=="__main__":
     plt.grid('on')
     plt.axis('equal')
 
+
+    plt.figure('wb　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+
     plt.show()
     '''
     ##########################################################################
@@ -707,7 +964,7 @@ if __name__=="__main__":
 
     myBeam.BeamGen()
 
-    plt.figure('G4dUzGdpp')
+    plt.figure('G4dUzGdpp　－　original')
     plt.subplot(221)
     plt.plot(myBeam.genX,myBeam.genXP,'.')
     plt.axis('equal')
@@ -724,6 +981,26 @@ if __name__=="__main__":
     plt.plot(myBeam.genX,myBeam.genY,'.')
     plt.grid('on')
     plt.axis('equal')
+
+    plt.figure('G4dUzGdpp　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+
 
     plt.show()
     '''
@@ -774,11 +1051,32 @@ if __name__=="__main__":
     plt.grid('on')
     plt.axis('equal')
 
+    plt.figure('K4dUzGdpp　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+
+
+
     plt.show()
     '''
     #################################################
 
-    #'''
+    '''
     #----- 测试　W4dUzGdpp  束流　生成
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('W4dUzGdpp')
@@ -823,8 +1121,193 @@ if __name__=="__main__":
     plt.grid('on')
     plt.axis('equal')
 
+
+    plt.figure('W4dUzGdpp　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+
     plt.show()
-    #'''
+    '''
+
+    ############################################
+    ##  测试并行生成粒子　　　mp
+    ############################################
+
+    
+
+    myBeam.SetAMU(938.272)
+    myBeam.SetGenBeamDist('G6d')
+    myBeam.SetGenEs(0.035)
+    myBeam.SetGenNumPart(1e5)
+    myBeam.SetGenTwissAlphaX(-1)
+    myBeam.SetGenTwissBetaX(1)
+    myBeam.SetGenTwissAlphaY(1)
+    myBeam.SetGenTwissBetaY(1)
+    myBeam.SetGenTwissAlphaZ(0)
+    myBeam.SetGenTwissBetaZ(1)
+    myBeam.SetGenEmitNormX(0.22)
+    myBeam.SetGenEmitNormY(0.22)
+    myBeam.SetGenEmitNormZ(0.25)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
+
+    myBeam.BeamGen()
+
+    plt.figure('gs-6d')
+    plt.subplot(221)
+    plt.plot(myBeam.genX,myBeam.genXP,'.')
+    plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.genY,myBeam.genYP,'.')
+    plt.grid('on')
+    plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.genZ,myBeam.genZP,'.')
+    plt.grid('on')
+    plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.genX,myBeam.genY,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+    plt.figure('gs　－　inner')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+    #plt.show()
+
+    #----- 测试ＧＳ　  束流　统计
+    myBeam.SetStatBeamDist('x')
+    myBeam.SetStatBeamX(myBeam.genX,myBeam.genXP)
+    print(myBeam.BeamStatRMS())
+    
+    myBeam.SetStatBeamDist('y')
+    myBeam.SetStatBeamY(myBeam.genY,myBeam.genYP)
+    print(myBeam.BeamStatRMS())
+
+    myBeam.SetStatBeamDist('z')
+    myBeam.SetStatBeamZ(myBeam.genZ,myBeam.genZP)
+    print(myBeam.BeamStatRMS())
+
+    print('-'*20)
+    myBeam.SetStatBeamDist('xy')
+    myBeam.SetStatBeamXY(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP)
+    print(myBeam.BeamStatRMS())
+
+    print('-'*20)
+    myBeam.SetStatBeamDist('xyz')
+    myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
+    print(myBeam.BeamStatRMS())   
+    
+    print('#'*50)
+
+    print(myBeam.GetStatBeamMean('xp'))
+    print(myBeam.GetStatBeamStd('xp'))
+    print(myBeam.GetStatBeamVar('xp'))
+    print(myBeam.GetStatBeamCov(['x','xp']))
+
+    print(myBeam.GetStatBeamEmitNatureRMS('x'))
+    print(myBeam.GetStatBeamEmitNormRMS('x'))
+    print(myBeam.GetStatBeamBeta('x'))
+    print(myBeam.GetStatBeamAlpha('x'))
+    print(myBeam.GetStatBeamGamma('x'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 print('END')
 
