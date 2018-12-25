@@ -781,6 +781,22 @@ class Beam():
         mpNumPart.append(numPartLast)
         return mpNumPart
 
+    def ParaAllocationBeamWeigh(self):
+        mpNumPart=self.ParaAllocationBeamGen()
+        mpPartWeigh=[]
+
+        for idNumPart in range(len(mpNumPart)):
+            if idNumPart==0:
+                numPartStart=0
+                numPartEnd=mpNumPart[0]
+            else:
+                numPartStart=numPartEnd
+                numPartEnd+=mpNumPart[idNumPart]
+
+            mpPartWeigh.append([self.x[numPartStart:numPartEnd],self.y[numPartStart:numPartEnd],self.z[numPartStart:numPartEnd],self.loss[numPartStart:numPartEnd]])
+        
+        return mpPartWeigh
+
 
     #############################################################
     ### Weighting Paricles  
@@ -818,6 +834,7 @@ class Beam():
 
         self.weighZmax=zc+betaLambda/2.
         self.weighZmin=zc-betaLambda/2.
+        
 
     
 
@@ -1444,7 +1461,7 @@ if __name__=="__main__":
     myBeam.SetGenZs()
     myBeam.SetGenZPs()
 
-    myNumCPU=10
+    myNumCPU=9
     myBeam.SetParaNumCPU(myNumCPU)
     mpNumPart=myBeam.ParaAllocationBeamGen()
 
@@ -1460,12 +1477,15 @@ if __name__=="__main__":
     myBeam.SetWeighBoundaryY(50)
 
     myBeam.WeighUpdateBoundaryZ()
-
     myBeam.BeamLoss()
 
+    mpPartWeigh=myBeam.ParaAllocationBeamWeigh()
 
 
 
+
+    for i in range(myNumCPU):
+        print(np.shape(mpPartWeigh[i]))
 
 
 
