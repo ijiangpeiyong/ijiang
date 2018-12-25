@@ -54,7 +54,8 @@ print(np.cov([y21.T,y22.T]))
 
 print(np.cov([y21,y22]))
 
-
+print(True+False)
+print(True*False)
 
 
 

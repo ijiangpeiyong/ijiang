@@ -34,3 +34,5 @@ print(eval('dataRandom[:,0].var()'))
 
 
 print(11//3)
+
+print(np.full((2),np.nan))

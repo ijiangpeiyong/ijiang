@@ -18,6 +18,7 @@ class Beam():
     #--------------------------------------------------
     def SetNumPart(self,numPart):      # 宏粒子个数
         self.numPart=np.int32(numPart)
+        self.loss=np.full((self.numPart),np.nan)
     
     #---------------------------------------------------
     def SetGenFreq(self,genFreq):    # 束流的基础频率，通常用于计算束团长度 MHz
@@ -754,6 +755,13 @@ class Beam():
         return [self.x,self.xp,self.y,self.yp,self.z,self.zp]
 
 
+    #########################################################
+    ## 往程序内部 set 束流分布
+    #########################################################
+    def BeamSet(self,part):
+        self.x,self.px,self.y,self.py,self.z,self.pz=part[0,:],part[1,:],part[2,:],part[3,:],part[4,:],part[5,:]
+
+
 
     #########################################################
     ##    并行相关
@@ -772,6 +780,126 @@ class Beam():
         mpNumPart=[numPart]*(self.paraNumCPU-1)
         mpNumPart.append(numPartLast)
         return mpNumPart
+
+
+    #############################################################
+    ### Weighting Paricles  
+    #############################################################
+
+    def SetWeighGrid3D(self,weighGridX,weighGridY,weighGridZ):
+        self.weighGridX=2**np.int32(weighGridX)
+        self.weighGridY=2**np.int32(weighGridY)
+        self.weighGridZ=2**np.int32(weighGridZ)
+
+
+    def SetWeighFreq(self,weighFreq):
+        self.weighFreq=weighFreq*1e6
+        self.weighWave=const.c/self.weighFreq*1e3
+
+    def SetWeighBoundaryX(self,weighXmax=20.,weighXmin=None):
+        if weighXmin==None:
+            weighXmin=-weighXmax
+        self.weighXmax=weighXmax
+        self.weighXmin=weighXmin
+
+    def SetWeighBoundaryY(self,weighYmax=20.,weighYmin=None):
+        if weighYmin==None:
+            weighYmin=-weighYmax
+        self.weighYmax=weighYmax
+        self.weighYmin=weighYmin
+
+    def WeighUpdateBoundaryZ(self):
+
+        zc=self.GetStatBeamMean('z')   # c: certer
+        pzc=self.GetStatBeamMean('pz')   # c: certer
+
+        betaC=self.FuncP2BetaC(pzc)   # C: light speed
+        betaLambda=betaC*self.weighWave
+
+        self.weighZmax=zc+betaLambda/2.
+        self.weighZmin=zc-betaLambda/2.
+
+    
+
+    #####################################################
+    ##  Check Beam Loss
+    #####################################################
+
+    def BeamLoss(self):
+        self.LossBeamX()
+        self.LossBeamY()
+        self.LossBeamZ()
+
+    def LossBeamX(self):    # 丢在ｘ方向的是正数，数值是丢失位置ｚ。
+        indexLoss=(np.isnan(self.loss)) * ( (self.x>self.weighXmax) + (self.x<self.weighXmin) )
+        self.loss[indexLoss]=self.z[indexLoss]
+        
+    def LossBeamY(self):    # 丢在y方向的是负数，数值是丢失位置ｚ。
+        indexLoss=(np.isnan(self.loss)) * ( (self.x>self.weighYmax) + (self.x<self.weighYmin) )
+        self.loss[indexLoss]=self.z[indexLoss]
+
+
+    def LossBeamZ(self):    # z方向不丢失，循环截取在一个周期中
+        betaLambda=self.weighZmax-self.weighZmin
+
+        indexLarger=(np.isnan(self.loss)) *  (self.x>self.weighZmax)
+        indexLess=(np.isnan(self.loss)) *  (self.x<self.weighZmin)
+        
+        self.z[indexLarger]-=betaLambda
+        self.z[indexLess]+=betaLambda
+        
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+    ###########################################################
+    ##  基本函数　　basic function
+    ###########################################################
+    def FuncP2GammaC(self,p):
+        return np.sqrt(1.+p**2)
+    def FuncP2BetaC(self,p):
+        gammaC=self.FuncP2GammaC(p)
+        return np.sqrt(1.-1./gammaC**2)
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1221,11 +1349,11 @@ if __name__=="__main__":
     '''
 
     ##--------------------------------------------
-
+    '''
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G6d')
     myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e7)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -1243,7 +1371,7 @@ if __name__=="__main__":
     myBeam.SetGenZs()
     myBeam.SetGenZPs()
 
-    myNumCPU=1
+    myNumCPU=10
     myBeam.SetParaNumCPU(myNumCPU)
     mpNumPart=myBeam.ParaAllocationBeamGen()
 
@@ -1251,6 +1379,89 @@ if __name__=="__main__":
         mpPart=p.map(myBeam.BeamGen,mpNumPart)
         print(np.shape(mpPart))
     part=np.hstack(mpPart)
+    myBeam.BeamSet(part)
+    myBeam.BeamTrans()
+    
+    plt.figure('gs　－　inside code')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.px,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.py,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.pz,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+    plt.figure('gs　－　outside code')
+    plt.subplot(221)
+    plt.plot(myBeam.x,myBeam.xp,'.')
+    #plt.axis('equal')
+    plt.grid('on')
+    plt.subplot(222)
+    plt.plot(myBeam.y,myBeam.yp,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(223)
+    plt.plot(myBeam.z,myBeam.zp,'.')
+    plt.grid('on')
+    #plt.axis('equal')
+    plt.subplot(224)
+    plt.plot(myBeam.x,myBeam.y,'.')
+    plt.grid('on')
+    plt.axis('equal')
+
+    #plt.show()
+    '''
+
+    #--------------------------------------------
+
+    myBeam.SetAMU(938.272)
+    myBeam.SetGenBeamDist('G6d')
+    myBeam.SetGenEs(0.035)
+    myBeam.SetNumPart(1e5)
+    myBeam.SetGenTwissAlphaX(-1)
+    myBeam.SetGenTwissBetaX(1)
+    myBeam.SetGenTwissAlphaY(1)
+    myBeam.SetGenTwissBetaY(1)
+    myBeam.SetGenTwissAlphaZ(0)
+    myBeam.SetGenTwissBetaZ(1)
+    myBeam.SetGenEmitNormX(0.22)
+    myBeam.SetGenEmitNormY(0.22)
+    myBeam.SetGenEmitNormZ(0.25)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
+
+    myNumCPU=10
+    myBeam.SetParaNumCPU(myNumCPU)
+    mpNumPart=myBeam.ParaAllocationBeamGen()
+
+    with mp.Pool(myNumCPU) as p:
+        mpPart=p.map(myBeam.BeamGen,mpNumPart)
+    part=np.hstack(mpPart)
+    myBeam.BeamSet(part)
+    myBeam.BeamTrans()
+
+    myBeam.SetWeighGrid3D(6,6,6)
+    myBeam.SetWeighFreq(162.5)
+    myBeam.SetWeighBoundaryX(50)
+    myBeam.SetWeighBoundaryY(50)
+
+    myBeam.WeighUpdateBoundaryZ()
+
+    myBeam.BeamLoss()
 
 
 
@@ -1306,13 +1517,7 @@ if __name__=="__main__":
 
 
 
-
-
-
-
-
-
-
+print('-'*50)
 print('END')
 
 
