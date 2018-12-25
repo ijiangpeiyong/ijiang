@@ -12,14 +12,31 @@ class Beam():
         pass
 
     #####################################################################
-    def SetAMU(self,amu=931.494):
+    def SetAMU(self,amu=938.272):
         self.amu=amu
 
     #--------------------------------------------------
     def SetNumPart(self,numPart):      # 宏粒子个数
         self.numPart=np.int32(numPart)
-        self.loss=np.full((self.numPart),np.nan)
-    
+        #self.loss=np.full((self.numPart),np.nan)
+
+
+    #---------------------------------------------------
+    '''
+    def SetBeamMass(self,beamMass=1.):
+        self.beamMass=np.full((self.numPart),beamMass)
+
+    def SetBeamCharge(self,beamCharge=1.):
+        self.beamCharge=np.full((self.numPart),beamCharge)    
+    '''
+
+    def SetGenBeamMass(self,genBeamMass=1.):
+        self.genBeamMass=genBeamMass
+
+    def SetGenBeamCharge(self,genBeamCharge=1.):
+        self.genBeamCharge=genBeamCharge    
+
+
     #---------------------------------------------------
     def SetGenFreq(self,genFreq):    # 束流的基础频率，通常用于计算束团长度 MHz
         self.genFreq=genFreq*1e6
@@ -460,7 +477,12 @@ class Beam():
 
         #self.BeamTrans()
 
-        return([self.x,self.px,self.y,self.py,self.z,self.pz])
+
+        self.m=np.ones_like(self.x)*self.genBeamMass
+        self.q=np.ones_like(self.x)*self.genBeamCharge
+        self.loss=np.ones_like(self.x)*np.nan
+
+        return([self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.loss])
 
 
 
@@ -523,7 +545,7 @@ class Beam():
     def StatBeamCovXYZ(self):        # 获得束流方差６Ｄ：　Ｘ－ＸＰ－Ｙ－ＹＰ－Ｚ－ZP
         self.statXYZcov=np.cov([self.statX,self.statXP,self.statY,self.statYP,self.statZ,self.statZP])
 
-    def BeamStatRMS(self):    # 统计束流
+    def BeamStatRMS(self):    # 统计束流的ＲＭＳ信息
         if self.statBeamDist=='x':
             self.StatBeamMeanX()
             self.StatBeamMeanXP()
@@ -608,7 +630,7 @@ class Beam():
 
             return  [x0,xp0,y0,yp0,z0,zp0,emit6d, self.statXYZcov]
 
-    def GetStatBeamMean(self,coordinate='x'):
+    def GetStatBeamMean(self,coordinate='x'):     # 获取各个方向的束流中心
         if coordinate=='x':
             return self.x.mean()
         if coordinate=='px':
@@ -629,7 +651,7 @@ class Beam():
             return self.zp.mean()  
 
 
-    def GetStatBeamStd(self,coordinate='x'):        
+    def GetStatBeamStd(self,coordinate='x'):      # 获取各个方向的束流均方差
         if coordinate=='x':
             return self.x.std()
         if coordinate=='px':
@@ -649,7 +671,7 @@ class Beam():
         if coordinate=='zp':
             return self.zp.std()           
             
-    def GetStatBeamVar(self,coordinate='x'):        
+    def GetStatBeamVar(self,coordinate='x'):        # 获取各个方向的束流方差
         if coordinate=='x':
             return self.x.var()
         if coordinate=='px':
@@ -670,13 +692,13 @@ class Beam():
             return self.zp.var()   
 
 
-    def GetStatBeamCov(self,coordinates=['x','xp']):   
+    def GetStatBeamCov(self,coordinates=['x','xp']):         # 获取各个平面的束流协方差
         x=[] 
         for iCoor in coordinates:
             x.append(eval('self.'+iCoor))
         return np.cov(x)
 
-    def GetStatBeamEmitNatureRMS(self,coordinate='x'):
+    def GetStatBeamEmitNatureRMS(self,coordinate='x'):      # 获取各个平面的自然发射度
         if coordinate=='x':
             cov=self.GetStatBeamCov(['x','xp'])
             return np.sqrt(np.linalg.det(cov))
@@ -687,7 +709,7 @@ class Beam():
             cov=self.GetStatBeamCov(['y','yp'])
             return np.sqrt(np.linalg.det(cov))    
 
-    def GetStatBeamEmitNormRMS(self,coordinate='x'):
+    def GetStatBeamEmitNormRMS(self,coordinate='x'):      # 获取各个平面的归一化发射度
         emitNature=self.GetStatBeamEmitNatureRMS(coordinate)
         pz0=self.GetStatBeamMean('pz')
         gammaC=np.sqrt(1.+pz0**2)
@@ -697,7 +719,7 @@ class Beam():
             emitNorm= emitNature*pz0*gammaC**2
         return emitNorm
     
-    def GetStatBeamBeta(self,coordinate='x'):
+    def GetStatBeamBeta(self,coordinate='x'):                # 获取各个平面的 beta
         if coordinate=='x':
             cov=self.GetStatBeamCov(['x','xp'])
         if coordinate=='y':
@@ -710,7 +732,7 @@ class Beam():
 
         return beta         
 
-    def GetStatBeamAlpha(self,coordinate='x'):
+    def GetStatBeamAlpha(self,coordinate='x'):                # 获取各个平面的 alpha
         if coordinate=='x':
             cov=self.GetStatBeamCov(['x','xp'])
         if coordinate=='y':
@@ -723,7 +745,7 @@ class Beam():
 
         return alpha         
 
-    def GetStatBeamGamma(self,coordinate='x'):
+    def GetStatBeamGamma(self,coordinate='x'):                # 获取各个平面的 gamma
         if coordinate=='x':
             cov=self.GetStatBeamCov(['x','xp'])
         if coordinate=='y':
@@ -743,14 +765,14 @@ class Beam():
     ############################################################
     ##   Trans 
     ############################################################
-    def TransBeamPX2XP(self,x,px,y,py,z,pz):
+    def TransBeamPX2XP(self,x,px,y,py,z,pz):       #　束流从动量ｐｘ　到角度　ｘｐ　转化
         pz0=pz.mean()
         zp=(pz-pz0)/pz0*1000.
         xp=px/pz*1000.
         yp=py/pz*1000.
         return x,xp,y,yp,z,zp
 
-    def BeamTrans(self):
+    def BeamTrans(self):          #　束流从动量ｐｘ　到角度　ｘｐ　转化　，并返回接口
         self.x,self.xp,self.y,self.yp,self.z,self.zp=self.TransBeamPX2XP(self.x,self.px,self.y,self.py,self.z,self.pz)
         return [self.x,self.xp,self.y,self.yp,self.z,self.zp]
 
@@ -758,8 +780,8 @@ class Beam():
     #########################################################
     ## 往程序内部 set 束流分布
     #########################################################
-    def BeamSet(self,part):
-        self.x,self.px,self.y,self.py,self.z,self.pz=part[0,:],part[1,:],part[2,:],part[3,:],part[4,:],part[5,:]
+    def BeamSet(self,part):         # 函数接口：　网程序内部　set　束流分布
+        self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.loss=part[0,:],part[1,:],part[2,:],part[3,:],part[4,:],part[5,:],part[6,:],part[7,:],part[8,:]
 
 
 
@@ -767,10 +789,10 @@ class Beam():
     ##    并行相关
     #########################################################
 
-    def SetParaNumCPU(self,paraNumCPU=0):
+    def SetParaNumCPU(self,paraNumCPU=0):      # 设置并行 cpu 个数
         self.paraNumCPU=np.int32(paraNumCPU)
 
-    def ParaAllocationBeamGen(self):
+    def ParaAllocationBeamGen(self):      # 给每个 cpu　分配生成粒子的个数
         if self.numPart % self.paraNumCPU==0:
             mpNumPart=[self.numPart // self.paraNumCPU]*self.paraNumCPU
             return mpNumPart
@@ -781,9 +803,9 @@ class Beam():
         mpNumPart.append(numPartLast)
         return mpNumPart
 
-    def ParaAllocationBeamWeigh(self):
+    def ParaAllocationBeamWeigh(self):      # 给每个 cpu　分配粒子称重（ｗｅｉｇｈｔｉｎｇ）的个数
         mpNumPart=self.ParaAllocationBeamGen()
-        mpPartWeigh=[]
+        mpWeighPart=[]
 
         for idNumPart in range(len(mpNumPart)):
             if idNumPart==0:
@@ -793,38 +815,38 @@ class Beam():
                 numPartStart=numPartEnd
                 numPartEnd+=mpNumPart[idNumPart]
 
-            mpPartWeigh.append([self.x[numPartStart:numPartEnd],self.y[numPartStart:numPartEnd],self.z[numPartStart:numPartEnd],self.loss[numPartStart:numPartEnd]])
+            mpWeighPart.append([self.x[numPartStart:numPartEnd],self.y[numPartStart:numPartEnd],self.z[numPartStart:numPartEnd],self.m[numPartStart:numPartEnd],self.q[numPartStart:numPartEnd],self.loss[numPartStart:numPartEnd]])
         
-        return mpPartWeigh
+        return mpWeighPart
 
 
     #############################################################
     ### Weighting Paricles  
     #############################################################
 
-    def SetWeighGrid3D(self,weighGridX,weighGridY,weighGridZ):
+    def SetWeighGrid3D(self,weighGridX,weighGridY,weighGridZ):    # 设置束流 space-charge 求解域　格点数
         self.weighGridX=2**np.int32(weighGridX)
         self.weighGridY=2**np.int32(weighGridY)
         self.weighGridZ=2**np.int32(weighGridZ)
 
 
-    def SetWeighFreq(self,weighFreq):
+    def SetWeighFreq(self,weighFreq):    # 设置束流 space-charge 求解域 的求解基准频率，用于纵向周期长度设定
         self.weighFreq=weighFreq*1e6
         self.weighWave=const.c/self.weighFreq*1e3
 
-    def SetWeighBoundaryX(self,weighXmax=20.,weighXmin=None):
+    def SetWeighBoundaryX(self,weighXmax=20.,weighXmin=None):       # 设置束流边界　　　Ｘ
         if weighXmin==None:
             weighXmin=-weighXmax
         self.weighXmax=weighXmax
         self.weighXmin=weighXmin
 
-    def SetWeighBoundaryY(self,weighYmax=20.,weighYmin=None):
+    def SetWeighBoundaryY(self,weighYmax=20.,weighYmin=None):       # 设置束流边界　　　Ｙ
         if weighYmin==None:
             weighYmin=-weighYmax
         self.weighYmax=weighYmax
         self.weighYmin=weighYmin
 
-    def WeighUpdateBoundaryZ(self):
+    def WeighUpdateBoundaryZ(self):       # 求解束流边界　　　Ｚ
 
         zc=self.GetStatBeamMean('z')   # c: certer
         pzc=self.GetStatBeamMean('pz')   # c: certer
@@ -836,13 +858,32 @@ class Beam():
         self.weighZmin=zc-betaLambda/2.
         
 
+
+    def WeighBeamX(self):
+        pass
+
+    def BeamWeigh(self,weighPart):       #　束流称重　主函数，有输入输出接口
+        weighPartX,weighPartY,weighPartZ,weighPartM,weighPartQ,weighPartLoss=weighPart[0,:],weighPart[1,:],weighPart[2,:],weighPart[3,:],weighPart[4,:],weighPart[5,:]
+
+        idLoss=np.isnan(weighPartLoss)
+
+
+
+        pass
+
+
+
+
+
+
+
     
 
     #####################################################
     ##  Check Beam Loss
     #####################################################
 
-    def BeamLoss(self):
+    def BeamLoss(self):       # 判断束流丢失情况
         self.LossBeamX()
         self.LossBeamY()
         self.LossBeamZ()
@@ -859,11 +900,12 @@ class Beam():
     def LossBeamZ(self):    # z方向不丢失，循环截取在一个周期中
         betaLambda=self.weighZmax-self.weighZmin
 
-        indexLarger=(np.isnan(self.loss)) *  (self.x>self.weighZmax)
-        indexLess=(np.isnan(self.loss)) *  (self.x<self.weighZmin)
+        indexLarger=(np.isnan(self.loss)) * (self.x>self.weighZmax)
+        indexLess=(np.isnan(self.loss)) * (self.x<self.weighZmin)
         
         self.z[indexLarger]-=betaLambda
         self.z[indexLess]+=betaLambda
+
         
 
 
@@ -1439,11 +1481,12 @@ if __name__=="__main__":
     '''
 
     #--------------------------------------------
-
+    myBeam.SetNumPart(1e5)
     myBeam.SetAMU(938.272)
+    myBeam.SetGenBeamMass(1)
+    myBeam.SetGenBeamCharge(1)
     myBeam.SetGenBeamDist('G6d')
     myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -1461,7 +1504,7 @@ if __name__=="__main__":
     myBeam.SetGenZs()
     myBeam.SetGenZPs()
 
-    myNumCPU=9
+    myNumCPU=10
     myBeam.SetParaNumCPU(myNumCPU)
     mpNumPart=myBeam.ParaAllocationBeamGen()
 
@@ -1479,13 +1522,13 @@ if __name__=="__main__":
     myBeam.WeighUpdateBoundaryZ()
     myBeam.BeamLoss()
 
-    mpPartWeigh=myBeam.ParaAllocationBeamWeigh()
+    mpWeighPart=myBeam.ParaAllocationBeamWeigh()
 
 
 
 
-    for i in range(myNumCPU):
-        print(np.shape(mpPartWeigh[i]))
+    # for i in range(myNumCPU):
+    #     print(np.shape(mpWeighPart[i]))
 
 
 
