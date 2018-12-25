@@ -5,6 +5,7 @@ import numpy as np
 from scipy import constants as const
 import matplotlib.pyplot as plt
 import multiprocessing as mp
+import time
 
 class Beam():
     def __init__(self):  # 初始化
@@ -15,8 +16,8 @@ class Beam():
         self.amu=amu
 
     #--------------------------------------------------
-    def SetGenNumPart(self,genNumPart):      # 宏粒子个数
-        self.genNumPart=np.int32(genNumPart)
+    def SetNumPart(self,numPart):      # 宏粒子个数
+        self.numPart=np.int32(numPart)
     
     #---------------------------------------------------
     def SetGenFreq(self,genFreq):    # 束流的基础频率，通常用于计算束团长度 MHz
@@ -449,12 +450,16 @@ class Beam():
 
 
     #########################################################################################
-    def BeamGen(self):
+    def BeamGen(self,genNumPart=0):
+        if genNumPart==0:
+            self.genNumPart=self.numPart
+        else:
+            self.genNumPart=genNumPart
         self.GenBeamOnDist()
 
-        self.BeamTrans()
+        #self.BeamTrans()
 
-        return([self.x,self.px,self.y,self.py,self.z,self.pz,self.xp,self.yp,self.zp])
+        return([self.x,self.px,self.y,self.py,self.z,self.pz])
 
 
 
@@ -746,9 +751,27 @@ class Beam():
 
     def BeamTrans(self):
         self.x,self.xp,self.y,self.yp,self.z,self.zp=self.TransBeamPX2XP(self.x,self.px,self.y,self.py,self.z,self.pz)
+        return [self.x,self.xp,self.y,self.yp,self.z,self.zp]
 
 
 
+    #########################################################
+    ##    并行相关
+    #########################################################
+
+    def SetParaNumCPU(self,paraNumCPU=0):
+        self.paraNumCPU=np.int32(paraNumCPU)
+
+    def ParaAllocationBeamGen(self):
+        if self.numPart % self.paraNumCPU==0:
+            mpNumPart=[self.numPart // self.paraNumCPU]*self.paraNumCPU
+            return mpNumPart
+        numPart=self.numPart//self.paraNumCPU+1
+        numPartLast=self.numPart-numPart*(self.paraNumCPU-1)
+        
+        mpNumPart=[numPart]*(self.paraNumCPU-1)
+        mpNumPart.append(numPartLast)
+        return mpNumPart
 
 
 
@@ -761,7 +784,7 @@ if __name__=="__main__":
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G6d')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -780,6 +803,7 @@ if __name__=="__main__":
     myBeam.SetGenZPs()
 
     myBeam.BeamGen()
+    myBeam.BeamTrans()
 
     plt.figure('gs-6d')
     plt.subplot(221)
@@ -866,7 +890,7 @@ if __name__=="__main__":
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('W6d')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -886,6 +910,7 @@ if __name__=="__main__":
     myBeam.SetGenZPs()
 
     myBeam.BeamGen()
+    myBeam.BeamTrans()
 
     plt.figure('wb-6d')
     plt.subplot(221)
@@ -934,7 +959,7 @@ if __name__=="__main__":
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G4dUzGdpp')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -963,6 +988,7 @@ if __name__=="__main__":
 
 
     myBeam.BeamGen()
+    myBeam.BeamTrans()
 
     plt.figure('G4dUzGdpp　－　original')
     plt.subplot(221)
@@ -1011,7 +1037,7 @@ if __name__=="__main__":
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('K4dUzGdpp')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -1032,6 +1058,7 @@ if __name__=="__main__":
 
 
     myBeam.BeamGen()
+    myBeam.BeamTrans()
 
     plt.figure('K4dUzGdpp')
     plt.subplot(221)
@@ -1081,7 +1108,7 @@ if __name__=="__main__":
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('W4dUzGdpp')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e5)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -1102,6 +1129,7 @@ if __name__=="__main__":
 
 
     myBeam.BeamGen()
+    myBeam.BeamTrans()
 
     plt.figure('W4dUzGdpp')
     plt.subplot(221)
@@ -1148,12 +1176,12 @@ if __name__=="__main__":
     ##  测试并行生成粒子　　　mp
     ############################################
 
-    
-
+    ###---------测试并行用时
+    '''  
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G6d')
     myBeam.SetGenEs(0.035)
-    myBeam.SetGenNumPart(1e5)
+    myBeam.SetNumPart(1e7)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
@@ -1171,82 +1199,58 @@ if __name__=="__main__":
     myBeam.SetGenZs()
     myBeam.SetGenZPs()
 
-    myBeam.BeamGen()
+    tocList=[]
+    for myNumCPU in range(1,25):
+        tic=time.time()
+        #myNumCPU=1
+        myBeam.SetParaNumCPU(myNumCPU)
+        mpNumPart=myBeam.ParaAllocationBeamGen()
+        #print(mpNumPart)
+        #print(np.sum(mpNumPart))
+        with mp.Pool(myNumCPU) as p:
+            mpPart=p.map(myBeam.BeamGen,mpNumPart)
+            print(np.shape(mpPart))
+        part=np.hstack(mpPart)
 
-    plt.figure('gs-6d')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genZP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    plt.figure('gs　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    #plt.show()
-
-    #----- 测试ＧＳ　  束流　统计
-    myBeam.SetStatBeamDist('x')
-    myBeam.SetStatBeamX(myBeam.genX,myBeam.genXP)
-    print(myBeam.BeamStatRMS())
+        toc=time.time()-tic
+        tocList.append(toc)
     
-    myBeam.SetStatBeamDist('y')
-    myBeam.SetStatBeamY(myBeam.genY,myBeam.genYP)
-    print(myBeam.BeamStatRMS())
+    plt.figure('toc 4 gen particles')
+    plt.plot(tocList)
+    plt.show()
+    '''
 
-    myBeam.SetStatBeamDist('z')
-    myBeam.SetStatBeamZ(myBeam.genZ,myBeam.genZP)
-    print(myBeam.BeamStatRMS())
+    ##--------------------------------------------
 
-    print('-'*20)
-    myBeam.SetStatBeamDist('xy')
-    myBeam.SetStatBeamXY(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP)
-    print(myBeam.BeamStatRMS())
+    myBeam.SetAMU(938.272)
+    myBeam.SetGenBeamDist('G6d')
+    myBeam.SetGenEs(0.035)
+    myBeam.SetNumPart(1e7)
+    myBeam.SetGenTwissAlphaX(-1)
+    myBeam.SetGenTwissBetaX(1)
+    myBeam.SetGenTwissAlphaY(1)
+    myBeam.SetGenTwissBetaY(1)
+    myBeam.SetGenTwissAlphaZ(0)
+    myBeam.SetGenTwissBetaZ(1)
+    myBeam.SetGenEmitNormX(0.22)
+    myBeam.SetGenEmitNormY(0.22)
+    myBeam.SetGenEmitNormZ(0.25)
 
-    print('-'*20)
-    myBeam.SetStatBeamDist('xyz')
-    myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
-    print(myBeam.BeamStatRMS())   
-    
-    print('#'*50)
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
 
-    print(myBeam.GetStatBeamMean('xp'))
-    print(myBeam.GetStatBeamStd('xp'))
-    print(myBeam.GetStatBeamVar('xp'))
-    print(myBeam.GetStatBeamCov(['x','xp']))
+    myNumCPU=1
+    myBeam.SetParaNumCPU(myNumCPU)
+    mpNumPart=myBeam.ParaAllocationBeamGen()
 
-    print(myBeam.GetStatBeamEmitNatureRMS('x'))
-    print(myBeam.GetStatBeamEmitNormRMS('x'))
-    print(myBeam.GetStatBeamBeta('x'))
-    print(myBeam.GetStatBeamAlpha('x'))
-    print(myBeam.GetStatBeamGamma('x'))
-
+    with mp.Pool(myNumCPU) as p:
+        mpPart=p.map(myBeam.BeamGen,mpNumPart)
+        print(np.shape(mpPart))
+    part=np.hstack(mpPart)
 
 
 

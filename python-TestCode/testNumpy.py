@@ -32,7 +32,5 @@ print(dataRandom[:,0].var())
 print(eval('dataRandom[:,0].var()'))
 
 
-print(eval('np.linalg.cov(dataRandom[:,0:2])'))
 
-
-np.linalg
+print(11//3)
