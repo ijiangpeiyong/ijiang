@@ -536,7 +536,7 @@ if __name__=="__main__":
     myBeam=Beam()
 
     ###########################################################################
-    '''
+    #'''
     #----- 测试ＧＳ　６Ｄ  束流　生成
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamDist('G6d')
@@ -604,7 +604,7 @@ if __name__=="__main__":
     myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
     print(myBeam.BeamStatRMS())   
     
-    '''
+    #'''
 
     #################################################################
     
