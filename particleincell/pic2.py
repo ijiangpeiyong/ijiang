@@ -798,6 +798,9 @@ class Beam():
         self.paraNumCPU=np.int32(paraNumCPU)
 
     def ParaAllocationBeamGen(self):      # 给每个 cpu　分配生成粒子的个数
+        mpNumPart=self.ParaAllocationNumbersOnCPU(self.numPart,self.paraNumCPU)
+
+        '''
         if self.numPart % self.paraNumCPU==0:
             mpNumPart=[self.numPart // self.paraNumCPU]*self.paraNumCPU
             return mpNumPart
@@ -806,6 +809,7 @@ class Beam():
         
         mpNumPart=[numPart]*(self.paraNumCPU-1)
         mpNumPart.append(numPartLast)
+        '''
         return mpNumPart
 
     def ParaAllocationBeamWeigh(self):      # 给每个 cpu　分配粒子称重（ｗｅｉｇｈｔｉｎｇ）的个数
@@ -824,10 +828,58 @@ class Beam():
         
         return mpWeighPart
 
+    def ParaAllocationNumbersOnCPU(self,number,cpu):
+        numberList=[number//cpu]*cpu
+        if number % cpu !=0:
+            for iCPU in range(number % cpu):
+                numberList[iCPU]+=1
+
+        return numberList
+
+
+    def ParaAllocationBeamGridOnZ(self):      # 给每个 cpu　分配grid的数据量，用于ｄｓｔ.　该函数沿着ｚ轴划分数据，在ｘ－ｙ上处理数据
+        mpNumGridList=self.ParaAllocationNumbersOnCPU(self.weighGridZ,self.paraNumCPU)
+
+        mpWeighGrid=[]
+
+        for iCPU in range(self.paraNumCPU):
+            if iCPU==0:
+                idStart=0
+                idEnd=mpNumGridList[0]
+            else:
+                idStart=idEnd
+                idEnd+=mpNumGridList[iCPU]
+
+            mpWeighGrid.append(self.weighGrid[:,:,idStart:idEnd])  
+ 
+        return mpWeighGrid
+
+    def ParaAllocationBeamGridOnX(self):      # 给每个 cpu　分配grid的数据量，用于dst/dct.　该函数沿着x轴划分数据，在z上处理数据
+        mpNumGridList=self.ParaAllocationNumbersOnCPU(self.weighGridX,self.paraNumCPU)
+
+        mpWeighGrid=[]
+
+        for iCPU in range(self.paraNumCPU):
+            if iCPU==0:
+                idStart=0
+                idEnd=mpNumGridList[0]
+            else:
+                idStart=idEnd
+                idEnd+=mpNumGridList[iCPU]
+
+
+            mpWeighGrid.append(self.weighGrid[idStart:idEnd,:,:])  
+ 
+        return mpWeighGrid
+
+
 
     #############################################################
     ### Weighting Paricles  
     #############################################################
+    def BeamGridSet(self,weighGrid):
+        self.weighGrid=weighGrid
+
 
     def SetWeighGrid3D(self,weighGridX,weighGridY,weighGridZ):    # 设置束流 space-charge 求解域　格点数
         self.weighGridX=2**np.int32(weighGridX)
@@ -955,7 +1007,6 @@ class Beam():
 
 
 
-
     def BeamWeigh(self,weighPart=None):       #　束流称重　主函数，有输入输出接口
         if weighPart==None:
             weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=self.x,self.y,self.z,self.q,self.loss
@@ -1046,17 +1097,19 @@ class Beam():
 
 
 
+    ####################################################################
+    ##   FFT
+    ####################################################################
+    def BeamFFTxy(self,mpWeighGridOnZ):
+        
 
+        pass
 
+    def BeamFFTz(self,mpWeighGridOnX):
+        pass
 
-
-
-
-
-
-
-
-
+    def FFTDstXY(self):
+        pass
 
 
 
@@ -1737,8 +1790,8 @@ if __name__=="__main__":
 
     myNumCPU=10
     myBeam.SetParaNumCPU(myNumCPU)
-    mpNumPart=myBeam.ParaAllocationBeamGen()
 
+    mpNumPart=myBeam.ParaAllocationBeamGen()
     with mp.Pool(myNumCPU) as p:
         mpPart=p.map(myBeam.BeamGen,mpNumPart)
     part=np.hstack(mpPart)
@@ -1755,17 +1808,29 @@ if __name__=="__main__":
 
 
     mpWeighPart=myBeam.ParaAllocationBeamWeigh()
-
-
     with mp.Pool(myNumCPU) as p:
         mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
-    
     weighGridSparse=np.hstack(mpWeighGridSparse)
-
     weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ)).toarray().reshape((myBeam.weighGridX,myBeam.weighGridY,myBeam.weighGridZ))
+    myBeam.BeamGridSet(weighGrid)
+
+    mpWeighGridOnZ=myBeam.ParaAllocationBeamGridOnZ()
+
+    
+    
 
 
+    print(np.shape(mpWeighGridOnZ[-1]))
 
+    print('-'*20)
+
+    mpWeighGridOnX=myBeam.ParaAllocationBeamGridOnX()
+
+    print(np.shape(mpWeighGridOnX[-1]))
+
+    #weighGridTest=np.hstack(mpWeighGrid)
+
+    #print(np.shape(weighGridTest))
 
 
 
