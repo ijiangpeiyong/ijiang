@@ -22,7 +22,7 @@ print(dataS2)
 print('-'*50)
 print(dataS3)
 
-kx=
+
 
 
 
