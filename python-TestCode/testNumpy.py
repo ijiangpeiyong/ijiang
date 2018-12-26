@@ -33,6 +33,10 @@ print(eval('dataRandom[:,0].var()'))
 
 
 
-print(11//3)
+print(11.1//3.05)
 
 print(np.full((2),np.nan))
+
+A=11.1
+B=3.5
+print(A / B, A//B, A%B, A-(A//B)*B)

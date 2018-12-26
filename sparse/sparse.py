@@ -9,3 +9,19 @@ print(c)
 
 d=c.toarray()
 print(d)
+
+
+e=sparse.lil_matrix(d)
+print('-'*20)
+print(e)
+print(e.rows)
+print(e.data)
+
+
+
+print('-'*20)
+f=sparse.dok_matrix(d)
+print(f)
+print(f.keys())
+print(f.values())
+

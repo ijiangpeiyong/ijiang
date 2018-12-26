@@ -6,6 +6,7 @@ from scipy import constants as const
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 import time
+from scipy import sparse
 
 class Beam():
     def __init__(self):  # 初始化
@@ -815,7 +816,7 @@ class Beam():
                 numPartStart=numPartEnd
                 numPartEnd+=mpNumPart[idNumPart]
 
-            mpWeighPart.append([self.x[numPartStart:numPartEnd],self.y[numPartStart:numPartEnd],self.z[numPartStart:numPartEnd],self.m[numPartStart:numPartEnd],self.q[numPartStart:numPartEnd],self.loss[numPartStart:numPartEnd]])
+            mpWeighPart.append([self.x[numPartStart:numPartEnd],self.y[numPartStart:numPartEnd],self.z[numPartStart:numPartEnd],self.q[numPartStart:numPartEnd],self.loss[numPartStart:numPartEnd]])
         
         return mpWeighPart
 
@@ -859,25 +860,109 @@ class Beam():
         
 
 
-    def WeighBeamX(self):
-        pass
+    def WeighBeam(self,x,y,z,q):
+        xMin=self.weighXmin
+        yMin=self.weighYmin
+        zMin=self.weighZmin
 
-    def BeamWeigh(self,weighPart):       #　束流称重　主函数，有输入输出接口
-        weighPartX,weighPartY,weighPartZ,weighPartM,weighPartQ,weighPartLoss=weighPart[0,:],weighPart[1,:],weighPart[2,:],weighPart[3,:],weighPart[4,:],weighPart[5,:]
+        dx=self.weighDeltaX
+        dy=self.weighDeltaY
+        dz=self.weighDeltaZ
 
-        idLoss=np.isnan(weighPartLoss)
+        xRelative=x-xMin
+        yRelative=y-yMin
+        zRelative=z-zMin
+
+        xI1=xRelative//dx
+        xI2=xI1+1
+
+        yI1=yRelative//dy
+        yI2=yI1+1
+        
+        zI1=zRelative//dz
+        zI2=zI1+1
+
+        xF2=xRelative % dx
+        xF1=1-xF2
+
+        yF2=yRelative % dy
+        yF1=1-yF2
+
+        zF2=zRelative % dz
+        zF1=1-zF2
+
+        # row 111   顺序为：　row z-y-x
+
+        row111=np.int32(xI1)
+        col111=np.int32(zI1*self.weighGridY+yI1)
+        data111=q*zF1*yF1*xF1
+
+        row112=np.int32(xI2)
+        col112=np.int32(zI1*self.weighGridY+yI1)
+        data112=q*zF1*yF1*xF2
+
+        row121=np.int32(xI1)
+        col121=np.int32(zI1*self.weighGridY+yI2)
+        data121=q*zF1*yF2*xF1
+
+        row122=np.int32(xI2)
+        col122=np.int32(zI1*self.weighGridY+yI2)
+        data122=q*zF1*yF2*xF2
+
+        row211=np.int32(xI1)
+        col211=np.int32(zI2*self.weighGridY+yI1)
+        data211=q*zF2*yF1*xF1
+
+        row212=np.int32(xI2)
+        col212=np.int32(zI2*self.weighGridY+yI1)
+        data212=q*zF2*yF1*xF2
+
+        row221=np.int32(xI1)
+        col221=np.int32(zI2*self.weighGridY+yI2)
+        data221=q*zF2*yF2*xF1
+
+        row222=np.int32(xI2)
+        col222=np.int32(zI2*self.weighGridY+yI2)
+        data222=q*zF2*yF2*xF2
+
+        row=np.hstack((row111,row112,row121,row122,row211,row212,row221,row222))
+        col=np.hstack((col111,col112,col121,col122,col211,col212,col221,col222))
+        data=np.hstack((data111,data112,data121,data122,data211,data212,data221,data222))
+        #print(np.shape(data))
+
+        return [row,col,data]
 
 
 
-        pass
 
 
 
+    def BeamWeigh(self,weighPart=None):       #　束流称重　主函数，有输入输出接口
+        if weighPart==None:
+            weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=self.x,self.y,self.z,self.q,self.loss
+        else:
+            weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=weighPart[0,:],weighPart[1,:],weighPart[2,:],weighPart[3,:],weighPart[4,:]
+
+        self.weighDeltaX,self.weighDeltaY,self.weighDeltaZ=(self.weighXmax-self.weighXmin)/(np.float(self.weighGridX-1)),(self.weighYmax-self.weighYmin)/(np.float(self.weighGridY-1)),(self.weighZmax-self.weighZmin)/(np.float(self.weighGridZ-1))
+        
+        indexUse=np.isnan(weighPartLoss)
+
+        weighX=weighPartX[indexUse]
+        weighY=weighPartY[indexUse]
+        weighZ=weighPartZ[indexUse]
+        weighQ=weighPartQ[indexUse]
+
+
+        [mpRow,mpCol,mpData]=self.WeighBeam(weighX,weighY,weighZ,weighQ)
+        mpWeighGridSparse=[mpRow,mpCol,mpData]
+
+        print(np.shape(mpWeighGridSparse))
+        print(mpWeighGridSparse[２])
+
+        return mpWeighGridSparse
 
 
 
-
-    
 
     #####################################################
     ##  Check Beam Loss
@@ -1514,7 +1599,7 @@ if __name__=="__main__":
     myBeam.BeamSet(part)
     myBeam.BeamTrans()
 
-    myBeam.SetWeighGrid3D(6,6,6)
+    myBeam.SetWeighGrid3D(5,6,7)
     myBeam.SetWeighFreq(162.5)
     myBeam.SetWeighBoundaryX(50)
     myBeam.SetWeighBoundaryY(50)
@@ -1523,6 +1608,14 @@ if __name__=="__main__":
     myBeam.BeamLoss()
 
     mpWeighPart=myBeam.ParaAllocationBeamWeigh()
+
+
+    mpWeighGridSparse=myBeam.BeamWeigh()
+    #weighGrid=sparse.coo_matrix((mpWeighGridSparse[2,:],(mpWeighGridSparse[0,:],mpWeighGridSparse[1,:])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ))
+    
+    #print(mpWeighGridSparse[2,:])
+    #weighGrid=sparse.coo_matrix((mpWeighGridSparse[2,:],(mpWeighGridSparse[0,:],mpWeighGridSparse[1,:])),shape=(32,8192))
+    
 
 
 
