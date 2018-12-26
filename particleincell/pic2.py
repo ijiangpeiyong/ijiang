@@ -1,12 +1,16 @@
 # Author : Peiyong Jiang
 # jiangpeiyong@126.com
 
-import numpy as np
-from scipy import constants as const
-import matplotlib.pyplot as plt
+
 import multiprocessing as mp
 import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from scipy import constants as const
 from scipy import sparse
+from matplotlib import cm
 
 class Beam():
     def __init__(self):  # 初始化
@@ -882,53 +886,68 @@ class Beam():
         zI1=zRelative//dz
         zI2=zI1+1
 
-        xF2=xRelative % dx
-        xF1=1-xF2
+        xF2=(xRelative % dx)/dx
+        xF1=1.-xF2
 
-        yF2=yRelative % dy
-        yF1=1-yF2
+        yF2=(yRelative % dy)/dy
+        yF1=1.-yF2
 
-        zF2=zRelative % dz
-        zF1=1-zF2
+        zF2=(zRelative % dz)/dz
+        zF1=1.-zF2
+
+        # print(np.min(xF2),np.min(yF2),np.min(zF2))
+        # print('='*20)
 
         # row 111   顺序为：　row z-y-x
 
         row111=np.int32(xI1)
-        col111=np.int32(zI1*self.weighGridY+yI1)
+        #col111=np.int32(zI1*self.weighGridY+yI1)
+        col111=np.int32(yI1*self.weighGridZ+zI1)
         data111=q*zF1*yF1*xF1
 
         row112=np.int32(xI2)
-        col112=np.int32(zI1*self.weighGridY+yI1)
+        #col112=np.int32(zI1*self.weighGridY+yI1)
+        col112=np.int32(yI1*self.weighGridZ+zI1)
         data112=q*zF1*yF1*xF2
 
         row121=np.int32(xI1)
-        col121=np.int32(zI1*self.weighGridY+yI2)
+        #col121=np.int32(zI1*self.weighGridY+yI2)
+        col121=np.int32(yI1*self.weighGridZ+zI2)
         data121=q*zF1*yF2*xF1
 
         row122=np.int32(xI2)
-        col122=np.int32(zI1*self.weighGridY+yI2)
+        #col122=np.int32(zI1*self.weighGridY+yI2)
+        col122=np.int32(yI1*self.weighGridZ+zI2)
         data122=q*zF1*yF2*xF2
 
         row211=np.int32(xI1)
-        col211=np.int32(zI2*self.weighGridY+yI1)
+        #col211=np.int32(zI2*self.weighGridY+yI1)
+        col211=np.int32(yI2*self.weighGridZ+zI1)
         data211=q*zF2*yF1*xF1
 
         row212=np.int32(xI2)
-        col212=np.int32(zI2*self.weighGridY+yI1)
+        #col212=np.int32(zI2*self.weighGridY+yI1)
+        col212=np.int32(yI2*self.weighGridZ+zI1)
         data212=q*zF2*yF1*xF2
 
         row221=np.int32(xI1)
-        col221=np.int32(zI2*self.weighGridY+yI2)
+        #col221=np.int32(zI2*self.weighGridY+yI2)
+        col221=np.int32(yI2*self.weighGridZ+zI2)
         data221=q*zF2*yF2*xF1
 
         row222=np.int32(xI2)
-        col222=np.int32(zI2*self.weighGridY+yI2)
+        #col222=np.int32(zI2*self.weighGridY+yI2)
+        col222=np.int32(yI2*self.weighGridZ+zI2)
         data222=q*zF2*yF2*xF2
+
 
         row=np.hstack((row111,row112,row121,row122,row211,row212,row221,row222))
         col=np.hstack((col111,col112,col121,col122,col211,col212,col221,col222))
         data=np.hstack((data111,data112,data121,data122,data211,data212,data221,data222))
-        #print(np.shape(data))
+
+
+        #print(np.min(xF2),1.-np.min(xF2),np.min(np.min(xF2)),'hhh')
+        #print(np.max(xF2))
 
         return [row,col,data]
 
@@ -941,10 +960,12 @@ class Beam():
         if weighPart==None:
             weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=self.x,self.y,self.z,self.q,self.loss
         else:
-            weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=weighPart[0,:],weighPart[1,:],weighPart[2,:],weighPart[3,:],weighPart[4,:]
+            weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=weighPart[0],weighPart[1],weighPart[2],weighPart[3],weighPart[4]
 
         self.weighDeltaX,self.weighDeltaY,self.weighDeltaZ=(self.weighXmax-self.weighXmin)/(np.float(self.weighGridX-1)),(self.weighYmax-self.weighYmin)/(np.float(self.weighGridY-1)),(self.weighZmax-self.weighZmin)/(np.float(self.weighGridZ-1))
-        
+
+        # print(weighPartQ,'aaa')
+
         indexUse=np.isnan(weighPartLoss)
 
         weighX=weighPartX[indexUse]
@@ -953,11 +974,9 @@ class Beam():
         weighQ=weighPartQ[indexUse]
 
 
+
         [mpRow,mpCol,mpData]=self.WeighBeam(weighX,weighY,weighZ,weighQ)
         mpWeighGridSparse=[mpRow,mpCol,mpData]
-
-        print(np.shape(mpWeighGridSparse))
-        print(mpWeighGridSparse[２])
 
         return mpWeighGridSparse
 
@@ -978,20 +997,27 @@ class Beam():
         self.loss[indexLoss]=self.z[indexLoss]
         
     def LossBeamY(self):    # 丢在y方向的是负数，数值是丢失位置ｚ。
-        indexLoss=(np.isnan(self.loss)) * ( (self.x>self.weighYmax) + (self.x<self.weighYmin) )
+        indexLoss=(np.isnan(self.loss)) * ( (self.y>self.weighYmax) + (self.y<self.weighYmin) )
         self.loss[indexLoss]=self.z[indexLoss]
 
 
     def LossBeamZ(self):    # z方向不丢失，循环截取在一个周期中
+ 
         betaLambda=self.weighZmax-self.weighZmin
 
-        indexLarger=(np.isnan(self.loss)) * (self.x>self.weighZmax)
-        indexLess=(np.isnan(self.loss)) * (self.x<self.weighZmin)
-        
-        self.z[indexLarger]-=betaLambda
-        self.z[indexLess]+=betaLambda
+        while True:
+            indexLarger=(np.isnan(self.loss)) * (self.z>self.weighZmax)
+            if ~(indexLarger==1).any():
+                break
+            self.z[indexLarger]-=betaLambda
 
-        
+            
+        while True:
+            indexLess=(np.isnan(self.loss)) * (self.z<self.weighZmin)
+            if ~(indexLess==1).any():
+                break
+            self.z[indexLess]+=betaLambda
+
 
 
 
@@ -1566,21 +1592,22 @@ if __name__=="__main__":
     '''
 
     #--------------------------------------------
-    myBeam.SetNumPart(1e5)
+    """
+    myBeam.SetNumPart(12345)
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamMass(1)
     myBeam.SetGenBeamCharge(1)
-    myBeam.SetGenBeamDist('G6d')
+    myBeam.SetGenBeamDist('W6d')
     myBeam.SetGenEs(0.035)
     myBeam.SetGenTwissAlphaX(-1)
     myBeam.SetGenTwissBetaX(1)
     myBeam.SetGenTwissAlphaY(1)
     myBeam.SetGenTwissBetaY(1)
     myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(1)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.25)
+    myBeam.SetGenTwissBetaZ(0.05)
+    myBeam.SetGenEmitNormX(1.22)
+    myBeam.SetGenEmitNormY(1.22)
+    myBeam.SetGenEmitNormZ(1.25)
 
     myBeam.SetGenXs()
     myBeam.SetGenXPs()
@@ -1607,21 +1634,135 @@ if __name__=="__main__":
     myBeam.WeighUpdateBoundaryZ()
     myBeam.BeamLoss()
 
+
     mpWeighPart=myBeam.ParaAllocationBeamWeigh()
 
 
-    mpWeighGridSparse=myBeam.BeamWeigh()
-    #weighGrid=sparse.coo_matrix((mpWeighGridSparse[2,:],(mpWeighGridSparse[0,:],mpWeighGridSparse[1,:])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ))
+    with mp.Pool(myNumCPU) as p:
+        mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
     
-    #print(mpWeighGridSparse[2,:])
-    #weighGrid=sparse.coo_matrix((mpWeighGridSparse[2,:],(mpWeighGridSparse[0,:],mpWeighGridSparse[1,:])),shape=(32,8192))
+    weighGridSparse=np.hstack(mpWeighGridSparse)
+
+    weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ)).toarray().reshape((myBeam.weighGridX,myBeam.weighGridY,myBeam.weighGridZ))
+
+    print(np.sum(weighGrid))
+    print(np.min(weighGrid))
+
+    '''　# Test XY 平面
+    fig = plt.figure('testXY')
+    ax = Axes3D(fig)
+    for iPage in range(myBeam.weighGridZ):
+        ax.clear()
+        ax.set_title(iPage)
+        
+        X = np.linspace(myBeam.weighXmin,myBeam.weighXmax, myBeam.weighGridX)
+        Y = np.linspace(myBeam.weighYmin,myBeam.weighYmax, myBeam.weighGridY)
+        Y,X = np.meshgrid(Y,X)
+        Z = weighGrid[:,:,iPage]
+
+
+        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet,
+            linewidth=0, antialiased=False)
+
+        plt.pause(0.01)
+
+    '''
+
+    '''　# Test XZ 平面
+    fig = plt.figure('testXZ')
+    ax = Axes3D(fig)
+    for iCol in range(myBeam.weighGridY):
+        ax.clear()
+        ax.set_title(iCol)
+        
+        X = np.linspace(myBeam.weighXmin,myBeam.weighXmax, myBeam.weighGridX)
+        Z = np.linspace(myBeam.weighZmin,myBeam.weighZmax, myBeam.weighGridZ)
+        Z,X = np.meshgrid(Z,X)
+        Y = weighGrid[:,iCol,:]
+
+
+        surf = ax.plot_surface(X, Z, Y, rstride=1, cstride=1, cmap=cm.jet,
+            linewidth=0, antialiased=False)
+
+        plt.pause(0.01)
+
+    '''        
+
+    '''　# Test YZ 平面
+    fig = plt.figure('testYZ')
+    ax = Axes3D(fig)
+    for iRow in range(myBeam.weighGridX):
+        ax.clear()
+        ax.set_title(iRow)
+        
+        Y = np.linspace(myBeam.weighYmin,myBeam.weighYmax, myBeam.weighGridY)
+        Z = np.linspace(myBeam.weighZmin,myBeam.weighZmax, myBeam.weighGridZ)
+        Z,Y = np.meshgrid(Z,Y)
+        X = weighGrid[iRow,:,:]
+
+
+        surf = ax.plot_surface(Y, Z, X, rstride=1, cstride=1, cmap=cm.jet,
+            linewidth=0, antialiased=False)
+
+        plt.pause(0.01)
+
+    '''  
+    """       
+
+    ##-----------------------------------------------------------------------------------
+
+
+    myBeam.SetNumPart(12345)
+    myBeam.SetAMU(938.272)
+    myBeam.SetGenBeamMass(1)
+    myBeam.SetGenBeamCharge(1)
+    myBeam.SetGenBeamDist('W6d')
+    myBeam.SetGenEs(0.035)
+    myBeam.SetGenTwissAlphaX(-1)
+    myBeam.SetGenTwissBetaX(1)
+    myBeam.SetGenTwissAlphaY(1)
+    myBeam.SetGenTwissBetaY(1)
+    myBeam.SetGenTwissAlphaZ(0)
+    myBeam.SetGenTwissBetaZ(0.05)
+    myBeam.SetGenEmitNormX(1.22)
+    myBeam.SetGenEmitNormY(1.22)
+    myBeam.SetGenEmitNormZ(1.25)
+
+    myBeam.SetGenXs()
+    myBeam.SetGenXPs()
+    myBeam.SetGenYs()
+    myBeam.SetGenYPs()
+    myBeam.SetGenZs()
+    myBeam.SetGenZPs()
+
+    myNumCPU=10
+    myBeam.SetParaNumCPU(myNumCPU)
+    mpNumPart=myBeam.ParaAllocationBeamGen()
+
+    with mp.Pool(myNumCPU) as p:
+        mpPart=p.map(myBeam.BeamGen,mpNumPart)
+    part=np.hstack(mpPart)
+    myBeam.BeamSet(part)
+    myBeam.BeamTrans()
+
+    myBeam.SetWeighGrid3D(5,6,7)
+    myBeam.SetWeighFreq(162.5)
+    myBeam.SetWeighBoundaryX(50)
+    myBeam.SetWeighBoundaryY(50)
+
+    myBeam.WeighUpdateBoundaryZ()
+    myBeam.BeamLoss()
+
+
+    mpWeighPart=myBeam.ParaAllocationBeamWeigh()
+
+
+    with mp.Pool(myNumCPU) as p:
+        mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
     
+    weighGridSparse=np.hstack(mpWeighGridSparse)
 
-
-
-
-    # for i in range(myNumCPU):
-    #     print(np.shape(mpWeighPart[i]))
+    weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ)).toarray().reshape((myBeam.weighGridX,myBeam.weighGridY,myBeam.weighGridZ))
 
 
 
@@ -1675,6 +1816,3 @@ if __name__=="__main__":
 
 print('-'*50)
 print('END')
-
-
-
