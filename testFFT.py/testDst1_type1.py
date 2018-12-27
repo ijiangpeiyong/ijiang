@@ -9,5 +9,7 @@ print(data)
 print(idst(dst(data,type=1),type=1)/(2.*(n+1.)))
 print(irfft(rfft(data)))
 
-
-
+print('-'*50)
+print(data)
+dst(data,type=1,overwrite_x=True)
+print(data)

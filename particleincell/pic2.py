@@ -7,10 +7,12 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import constants as const
 from scipy import sparse
-from matplotlib import cm
+from scipy.fftpack import dstn, idstn, irfft, rfft
+
 
 class Beam():
     def __init__(self):  # 初始化
@@ -637,70 +639,70 @@ class Beam():
 
     def GetStatBeamMean(self,coordinate='x'):     # 获取各个方向的束流中心
         if coordinate=='x':
-            return self.x.mean()
+            return self.x[np.isnan(self.loss)].mean()
         if coordinate=='px':
-            return self.px.mean()
+            return self.px[np.isnan(self.loss)].mean()
         if coordinate=='xp':
-            return self.xp.mean()
+            return self.xp[np.isnan(self.loss)].mean()
         if coordinate=='y':
-            return self.y.mean()
+            return self.y[np.isnan(self.loss)].mean()
         if coordinate=='py':
-            return self.py.mean()
+            return self.py[np.isnan(self.loss)].mean()
         if coordinate=='yp':
-            return self.yp.mean()
+            return self.yp[np.isnan(self.loss)].mean()
         if coordinate=='z':
-            return self.z.mean()
+            return self.z[np.isnan(self.loss)].mean()
         if coordinate=='pz':
-            return self.pz.mean()  
+            return self.pz[np.isnan(self.loss)].mean()  
         if coordinate=='zp':
-            return self.zp.mean()  
+            return self.zp[np.isnan(self.loss)].mean()  
 
 
     def GetStatBeamStd(self,coordinate='x'):      # 获取各个方向的束流均方差
         if coordinate=='x':
-            return self.x.std()
+            return self.x[np.isnan(self.loss)].std()
         if coordinate=='px':
-            return self.px.std()
+            return self.px[np.isnan(self.loss)].std()
         if coordinate=='xp':
-            return self.xp.std()            
+            return self.xp[np.isnan(self.loss)].std()            
         if coordinate=='y':
-            return self.y.std()
+            return self.y[np.isnan(self.loss)].std()
         if coordinate=='py':
-            return self.py.std()
+            return self.py[np.isnan(self.loss)].std()
         if coordinate=='yp':
-            return self.yp.std()
+            return self.yp[np.isnan(self.loss)].std()
         if coordinate=='z':
-            return self.z.std()
+            return self.z[np.isnan(self.loss)].std()
         if coordinate=='pz':
-            return self.pz.std()      
+            return self.pz[np.isnan(self.loss)].std()      
         if coordinate=='zp':
-            return self.zp.std()           
+            return self.zp[np.isnan(self.loss)].std()           
             
     def GetStatBeamVar(self,coordinate='x'):        # 获取各个方向的束流方差
         if coordinate=='x':
-            return self.x.var()
+            return self.x[np.isnan(self.loss)].var()
         if coordinate=='px':
-            return self.px.var()
+            return self.px[np.isnan(self.loss)].var()
         if coordinate=='xp':
-            return self.xp.var()
+            return self.xp[np.isnan(self.loss)].var()
         if coordinate=='y':
-            return self.y.var()
+            return self.y[np.isnan(self.loss)].var()
         if coordinate=='py':
-            return self.py.var()
+            return self.py[np.isnan(self.loss)].var()
         if coordinate=='yp':
-            return self.yp.var()
+            return self.yp[np.isnan(self.loss)].var()
         if coordinate=='z':
-            return self.z.var()
+            return self.z[np.isnan(self.loss)].var()
         if coordinate=='pz':
-            return self.pz.var()   
+            return self.pz[np.isnan(self.loss)].var()   
         if coordinate=='zp':
-            return self.zp.var()   
+            return self.zp[np.isnan(self.loss)].var()   
 
 
     def GetStatBeamCov(self,coordinates=['x','xp']):         # 获取各个平面的束流协方差
         x=[] 
         for iCoor in coordinates:
-            x.append(eval('self.'+iCoor))
+            x.append(eval('self.'+iCoor+'[np.isnan(self.loss)]'))
         return np.cov(x)
 
     def GetStatBeamEmitNatureRMS(self,coordinate='x'):      # 获取各个平面的自然发射度
@@ -903,16 +905,22 @@ class Beam():
         self.weighYmax=weighYmax
         self.weighYmin=weighYmin
 
-    def WeighUpdateBoundaryZ(self):       # 求解束流边界　　　Ｚ
+    def SetWeighBoundaryZ(self,weighZmax=None,weighZmin=None):       # 求解束流边界　　　Ｚ
+        if (weighZmax==None) and (weighZmin==None):
+            zc=self.GetStatBeamMean('z')   # c: certer
+            pzc=self.GetStatBeamMean('pz')   # c: certer
 
-        zc=self.GetStatBeamMean('z')   # c: certer
-        pzc=self.GetStatBeamMean('pz')   # c: certer
+            betaC=self.FuncP2BetaC(pzc)   # C: light speed
+            betaLambda=betaC*self.weighWave
 
-        betaC=self.FuncP2BetaC(pzc)   # C: light speed
-        betaLambda=betaC*self.weighWave
-
-        self.weighZmax=zc+betaLambda/2.
-        self.weighZmin=zc-betaLambda/2.
+            self.weighZmax=zc+betaLambda/2.
+            self.weighZmin=zc-betaLambda/2.
+        elif weighZmin==None:
+            self.weighZmax=weighZmax
+            self.weighZmin=-weighZmax
+        else:
+            self.weighZmax=weighZmax
+            self.weighZmin=weighZmin            
         
 
 
@@ -954,42 +962,42 @@ class Beam():
 
         row111=np.int32(xI1)
         #col111=np.int32(zI1*self.weighGridY+yI1)
-        col111=np.int32(yI1*self.weighGridZ+zI1)
+        col111=np.int32(yI1*(self.weighGridZ+2)+zI1)
         data111=q*zF1*yF1*xF1
 
         row112=np.int32(xI2)
         #col112=np.int32(zI1*self.weighGridY+yI1)
-        col112=np.int32(yI1*self.weighGridZ+zI1)
+        col112=np.int32(yI1*(self.weighGridZ+2)+zI1)
         data112=q*zF1*yF1*xF2
 
         row121=np.int32(xI1)
         #col121=np.int32(zI1*self.weighGridY+yI2)
-        col121=np.int32(yI1*self.weighGridZ+zI2)
+        col121=np.int32(yI1*(self.weighGridZ+2)+zI2)
         data121=q*zF1*yF2*xF1
 
         row122=np.int32(xI2)
         #col122=np.int32(zI1*self.weighGridY+yI2)
-        col122=np.int32(yI1*self.weighGridZ+zI2)
+        col122=np.int32(yI1*(self.weighGridZ+2)+zI2)
         data122=q*zF1*yF2*xF2
 
         row211=np.int32(xI1)
         #col211=np.int32(zI2*self.weighGridY+yI1)
-        col211=np.int32(yI2*self.weighGridZ+zI1)
+        col211=np.int32(yI2*(self.weighGridZ+2)+zI1)
         data211=q*zF2*yF1*xF1
 
         row212=np.int32(xI2)
         #col212=np.int32(zI2*self.weighGridY+yI1)
-        col212=np.int32(yI2*self.weighGridZ+zI1)
+        col212=np.int32(yI2*(self.weighGridZ+2)+zI1)
         data212=q*zF2*yF1*xF2
 
         row221=np.int32(xI1)
         #col221=np.int32(zI2*self.weighGridY+yI2)
-        col221=np.int32(yI2*self.weighGridZ+zI2)
+        col221=np.int32(yI2*(self.weighGridZ+2)+zI2)
         data221=q*zF2*yF2*xF1
 
         row222=np.int32(xI2)
         #col222=np.int32(zI2*self.weighGridY+yI2)
-        col222=np.int32(yI2*self.weighGridZ+zI2)
+        col222=np.int32(yI2*(self.weighGridZ+2)+zI2)
         data222=q*zF2*yF2*xF2
 
 
@@ -1013,7 +1021,7 @@ class Beam():
         else:
             weighPartX,weighPartY,weighPartZ,weighPartQ,weighPartLoss=weighPart[0],weighPart[1],weighPart[2],weighPart[3],weighPart[4]
 
-        self.weighDeltaX,self.weighDeltaY,self.weighDeltaZ=(self.weighXmax-self.weighXmin)/(np.float(self.weighGridX-1)),(self.weighYmax-self.weighYmin)/(np.float(self.weighGridY-1)),(self.weighZmax-self.weighZmin)/(np.float(self.weighGridZ-1))
+        self.weighDeltaX,self.weighDeltaY,self.weighDeltaZ=(self.weighXmax-self.weighXmin)/(np.float(self.weighGridX+1)),(self.weighYmax-self.weighYmin)/(np.float(self.weighGridY+1)),(self.weighZmax-self.weighZmin)/(np.float(self.weighGridZ+1))
 
         # print(weighPartQ,'aaa')
 
@@ -1101,16 +1109,17 @@ class Beam():
     ##   FFT
     ####################################################################
     def BeamFFTxy(self,mpWeighGridOnZ):
-        
-
-        pass
+        dstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
+        return mpWeighGridOnZ
 
     def BeamFFTz(self,mpWeighGridOnX):
-        pass
+        rfft(mpWeighGridOnX,overwrite_x=True)
+        return mpWeighGridOnX
 
-    def FFTDstXY(self):
-        pass
 
+
+    def FFTEigens(slef):
+        pass
 
 
 
@@ -1802,8 +1811,10 @@ if __name__=="__main__":
     myBeam.SetWeighFreq(162.5)
     myBeam.SetWeighBoundaryX(50)
     myBeam.SetWeighBoundaryY(50)
+    myBeam.SetWeighBoundaryZ()
 
-    myBeam.WeighUpdateBoundaryZ()
+    # myBeam.
+
     myBeam.BeamLoss()
 
 
@@ -1811,22 +1822,41 @@ if __name__=="__main__":
     with mp.Pool(myNumCPU) as p:
         mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
     weighGridSparse=np.hstack(mpWeighGridSparse)
-    weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ)).toarray().reshape((myBeam.weighGridX,myBeam.weighGridY,myBeam.weighGridZ))
+    weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX+2,(myBeam.weighGridY+2)*(myBeam.weighGridZ+2))).toarray().reshape((myBeam.weighGridX+2,myBeam.weighGridY+2,myBeam.weighGridZ+2))[1:myBeam.weighGridX+1,1:myBeam.weighGridY+1,1:myBeam.weighGridZ+1]
     myBeam.BeamGridSet(weighGrid)
 
     mpWeighGridOnZ=myBeam.ParaAllocationBeamGridOnZ()
+    with mp.Pool(myNumCPU) as p:
+        weighGridOnZ=p.map(myBeam.BeamFFTxy,mpWeighGridOnZ)
+    weighGrid=np.dstack(weighGridOnZ)
+    myBeam.BeamGridSet(weighGrid)
 
     
+    mpWeighGridOnX=myBeam.ParaAllocationBeamGridOnX()
+    
+    with mp.Pool(myNumCPU) as p:
+        weighGridOnX=p.map(myBeam.BeamFFTz,mpWeighGridOnX)
+
+
+
+    weighGrid=np.vstack(weighGridOnX)
+    myBeam.BeamGridSet(weighGrid)
     
 
 
-    print(np.shape(mpWeighGridOnZ[-1]))
+
+    '''
+    for iCPU in range(myNumCPU):
+        print(np.shape(mpWeighGridOnZ[iCPU]))
 
     print('-'*20)
 
     mpWeighGridOnX=myBeam.ParaAllocationBeamGridOnX()
 
-    print(np.shape(mpWeighGridOnX[-1]))
+    for iCPU in range(myNumCPU):
+        print(np.shape(mpWeighGridOnX[iCPU]))
+
+    '''
 
     #weighGridTest=np.hstack(mpWeighGrid)
 
