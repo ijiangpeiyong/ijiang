@@ -11,7 +11,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import constants as const
 from scipy import sparse
-from scipy.fftpack import dstn, idstn, irfft, rfft
+from scipy.fftpack import dstn, idstn, irfft, rfft, dst, idst, dct, idct, fft, ifft
 
 
 class Beam():
@@ -948,8 +948,8 @@ class Beam():
         self.weighDeltaY=(self.weighYmax-self.weighYmin)/(np.float(self.weighGridY+1))
 
 
-    def SetWeighBoundaryZ(self,weighZmax=None,weighZmin=None):       # 求解束流边界　　　Ｚ
-        if (weighZmax==None) and (weighZmin==None):
+    def SetWeighBoundaryZ(self,weighZmax=np.nan,weighZmin=np.nan):       # 求解束流边界　　　Ｚ
+        if np.isnan(weighZmax) and np.isnan(weighZmin):
             zc=self.GetStatBeamMean('z')   # c: certer
             pzc=self.GetStatBeamMean('pz')   # c: certer
 
@@ -958,13 +958,13 @@ class Beam():
 
             self.weighZmax=zc+betaLambda/2.
             self.weighZmin=zc-betaLambda/2.
-        elif weighZmin==None:
+        elif np.isnan(weighZmin):
             self.weighZmax=weighZmax
             self.weighZmin=-weighZmax
         else:
             self.weighZmax=weighZmax
             self.weighZmin=weighZmin
-        
+       
         self.weighDeltaZ=(self.weighZmax-self.weighZmin)/(np.float(self.weighGridZ+1))
 
 
@@ -1049,6 +1049,7 @@ class Beam():
         col=np.hstack((col111,col112,col121,col122,col211,col212,col221,col222))
         data=np.hstack((data111,data112,data121,data122,data211,data212,data221,data222))
 
+        data/=(self.weighDeltaX*self.weighDeltaY*self.weighDeltaZrelative*1e-9)
 
         #print(np.min(xF2),1.-np.min(xF2),np.min(np.min(xF2)),'hhh')
         #print(np.max(xF2))
@@ -1153,26 +1154,61 @@ class Beam():
     ##   FFT
     ####################################################################
     def BeamFFTxy(self,mpWeighGridOnZ):
-        dstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
+        mpWeighGridOnZ=dstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
         return mpWeighGridOnZ
 
     def BeamFFTxyInv(self,mpWeighGridOnZ):
-        idstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
+        mpWeighGridOnZ=idstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
         mpWeighGridOnZ/=((2.*(self.weighDeltaX+1.))*(2.*(self.weighDeltaY+1.)))
         return mpWeighGridOnZ
 
+    '''     # 毛毛多，比较扎手
     def BeamFFTz(self,mp_weighGrid_fftK2):
         mpWeighGridOnX=mp_weighGrid_fftK2[0]
         fftK2=mp_weighGrid_fftK2[1]
 
-        rfft(mpWeighGridOnX,overwrite_x=True)
+        mpWeighGridOnX=rfft(mpWeighGridOnX,axis=-1,overwrite_x=True)
 
         mpWeighGridOnX=mpWeighGridOnX/fftK2
 
-        irfft(mpWeighGridOnX,overwrite_x=True)
+        mpWeighGridOnX=irfft(mpWeighGridOnX,axis=-1,overwrite_x=True)
 
         return mpWeighGridOnX
+    '''
+    '''   # 可能是错的
+    def BeamFFTz(self,mp_weighGrid_fftK2):
+        mpWeighGridOnX=mp_weighGrid_fftK2[0]
+        fftK2=mp_weighGrid_fftK2[1]
 
+        mpWeighGridOnXs=dst(mpWeighGridOnX,axis=-1,overwrite_x=True)
+        mpWeighGridOnXc=dct(mpWeighGridOnX,axis=-1,overwrite_x=True)
+
+        mpWeighGridOnXs=mpWeighGridOnXs/fftK2
+        mpWeighGridOnXc=mpWeighGridOnXc/fftK2
+
+        mpWeighGridOnXs=idst(mpWeighGridOnXs,type=1,axis=-1,overwrite_x=True)
+        mpWeighGridOnXc=idct(mpWeighGridOnXc,type=1,axis=-1,overwrite_x=True)
+
+        mpWeighGridOnXs/=2.*(self.weighGridZ+1.)
+        mpWeighGridOnXc/=2.*self.weighGridZ
+
+        mpWeighGridOnX=mpWeighGridOnXs+mpWeighGridOnXc
+
+        return mpWeighGridOnX
+    '''
+    #'''
+    def BeamFFTz(self,mp_weighGrid_fftK2):
+        mpWeighGridOnX=mp_weighGrid_fftK2[0]
+        fftK2=mp_weighGrid_fftK2[1]
+
+        mpWeighGridOnX=fft(mpWeighGridOnX,axis=-1,overwrite_x=True)
+
+        mpWeighGridOnX=mpWeighGridOnX/fftK2
+
+        mpWeighGridOnX=np.real(ifft(mpWeighGridOnX,axis=-1,overwrite_x=True))
+
+        return mpWeighGridOnX
+    #'''
 
 
     def FFTEigenInitialize(self):
@@ -1206,7 +1242,7 @@ class Beam():
         #print(np.shape(self.fftK2))
    
         
-
+    
 
 
 
@@ -1224,640 +1260,6 @@ class Beam():
 if __name__=="__main__":
     myBeam=Beam()
 
-    ###########################################################################
-    '''
-    #----- 测试ＧＳ　６Ｄ  束流　生成
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('G6d')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(1)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.25)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenZPs()
-
-    myBeam.BeamGen()
-    myBeam.BeamTrans()
-
-    plt.figure('gs-6d')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genZP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    plt.figure('gs　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    #plt.show()
-
-    #----- 测试ＧＳ　  束流　统计
-    myBeam.SetStatBeamDist('x')
-    myBeam.SetStatBeamX(myBeam.genX,myBeam.genXP)
-    print(myBeam.BeamStatRMS())
-    
-    myBeam.SetStatBeamDist('y')
-    myBeam.SetStatBeamY(myBeam.genY,myBeam.genYP)
-    print(myBeam.BeamStatRMS())
-
-    myBeam.SetStatBeamDist('z')
-    myBeam.SetStatBeamZ(myBeam.genZ,myBeam.genZP)
-    print(myBeam.BeamStatRMS())
-
-    print('-'*20)
-    myBeam.SetStatBeamDist('xy')
-    myBeam.SetStatBeamXY(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP)
-    print(myBeam.BeamStatRMS())
-
-    print('-'*20)
-    myBeam.SetStatBeamDist('xyz')
-    myBeam.SetStatBeamXYZ(myBeam.genX,myBeam.genXP,myBeam.genY,myBeam.genYP,myBeam.genZ,myBeam.genZP)
-    print(myBeam.BeamStatRMS())   
-    
-    print('#'*50)
-
-    print(myBeam.GetStatBeamMean('xp'))
-    print(myBeam.GetStatBeamStd('xp'))
-    print(myBeam.GetStatBeamVar('xp'))
-    print(myBeam.GetStatBeamCov(['x','xp']))
-
-    print(myBeam.GetStatBeamEmitNatureRMS('x'))
-    print(myBeam.GetStatBeamEmitNormRMS('x'))
-    print(myBeam.GetStatBeamBeta('x'))
-    print(myBeam.GetStatBeamAlpha('x'))
-    print(myBeam.GetStatBeamGamma('x'))
-
-
-
-    '''
-
-    #################################################################
-
-    '''
-    #----- 测试WB　６Ｄ  束流　生成
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('W6d')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(1)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.25)
-
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenZPs()
-
-    myBeam.BeamGen()
-    myBeam.BeamTrans()
-
-    plt.figure('wb-6d')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genZP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-    plt.figure('wb　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-    plt.show()
-    '''
-    ##########################################################################
-    
-    '''
-    #----- 测试　G4dUzGdpp  束流　生成
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('G4dUzGdpp')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(360)
-    myBeam.SetGenBeamDpp(0.01)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-
-    myBeam.SetGenFreq(162.5)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenDPPs()
-    myBeam.SetGenFreq(162.5)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenDPPs()
-
-
-    myBeam.BeamGen()
-    myBeam.BeamTrans()
-
-    plt.figure('G4dUzGdpp　－　original')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genDpp,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    plt.figure('G4dUzGdpp　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-
-    plt.show()
-    '''
-
-    ######################################################################
-    '''
-    #----- 测试　K4dUzGdpp  束流　生成
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('K4dUzGdpp')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(360)
-    myBeam.SetGenBeamDpp(0.01)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-
-    myBeam.SetGenFreq(162.5)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenDPPs()
-
-
-    myBeam.BeamGen()
-    myBeam.BeamTrans()
-
-    plt.figure('K4dUzGdpp')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genDpp,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    plt.figure('K4dUzGdpp　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-
-
-    plt.show()
-    '''
-    #################################################
-
-    '''
-    #----- 测试　W4dUzGdpp  束流　生成
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('W4dUzGdpp')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenBeamLength(360)
-    myBeam.SetGenBeamDpp(0.01)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-
-    myBeam.SetGenFreq(162.5)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenDPPs(0)
-
-
-    myBeam.BeamGen()
-    myBeam.BeamTrans()
-
-    plt.figure('W4dUzGdpp')
-    plt.subplot(221)
-    plt.plot(myBeam.genX,myBeam.genXP,'.')
-    plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.genY,myBeam.genYP,'.')
-    plt.grid('on')
-    plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.genZ,myBeam.genDpp,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.genX,myBeam.genY,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-    plt.figure('W4dUzGdpp　－　inner')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-
-    plt.show()
-    '''
-
-    ############################################
-    ##  测试并行生成粒子　　　mp
-    ############################################
-
-    ###---------测试并行用时
-    '''  
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('G6d')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e7)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(1)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.25)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenZPs()
-
-    tocList=[]
-    for myNumCPU in range(1,25):
-        tic=time.time()
-        #myNumCPU=1
-        myBeam.SetParaNumCPU(myNumCPU)
-        mpNumPart=myBeam.ParaAllocationBeamGen()
-        #print(mpNumPart)
-        #print(np.sum(mpNumPart))
-        with mp.Pool(myNumCPU) as p:
-            mpPart=p.map(myBeam.BeamGen,mpNumPart)
-            print(np.shape(mpPart))
-        part=np.hstack(mpPart)
-
-        toc=time.time()-tic
-        tocList.append(toc)
-    
-    plt.figure('toc 4 gen particles')
-    plt.plot(tocList)
-    plt.show()
-    '''
-
-    ##--------------------------------------------
-    '''
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamDist('G6d')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetNumPart(1e5)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(1)
-    myBeam.SetGenEmitNormX(0.22)
-    myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.25)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenZPs()
-
-    myNumCPU=10
-    myBeam.SetParaNumCPU(myNumCPU)
-    mpNumPart=myBeam.ParaAllocationBeamGen()
-
-    with mp.Pool(myNumCPU) as p:
-        mpPart=p.map(myBeam.BeamGen,mpNumPart)
-        print(np.shape(mpPart))
-    part=np.hstack(mpPart)
-    myBeam.BeamSet(part)
-    myBeam.BeamTrans()
-    
-    plt.figure('gs　－　inside code')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.px,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.py,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.pz,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    plt.figure('gs　－　outside code')
-    plt.subplot(221)
-    plt.plot(myBeam.x,myBeam.xp,'.')
-    #plt.axis('equal')
-    plt.grid('on')
-    plt.subplot(222)
-    plt.plot(myBeam.y,myBeam.yp,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(223)
-    plt.plot(myBeam.z,myBeam.zp,'.')
-    plt.grid('on')
-    #plt.axis('equal')
-    plt.subplot(224)
-    plt.plot(myBeam.x,myBeam.y,'.')
-    plt.grid('on')
-    plt.axis('equal')
-
-    #plt.show()
-    '''
-
-    #--------------------------------------------
-    """
-    myBeam.SetNumPart(12345)
-    myBeam.SetAMU(938.272)
-    myBeam.SetGenBeamMass(1)
-    myBeam.SetGenBeamCharge(1)
-    myBeam.SetGenBeamDist('W6d')
-    myBeam.SetGenEs(0.035)
-    myBeam.SetGenTwissAlphaX(-1)
-    myBeam.SetGenTwissBetaX(1)
-    myBeam.SetGenTwissAlphaY(1)
-    myBeam.SetGenTwissBetaY(1)
-    myBeam.SetGenTwissAlphaZ(0)
-    myBeam.SetGenTwissBetaZ(0.05)
-    myBeam.SetGenEmitNormX(1.22)
-    myBeam.SetGenEmitNormY(1.22)
-    myBeam.SetGenEmitNormZ(1.25)
-
-    myBeam.SetGenXs()
-    myBeam.SetGenXPs()
-    myBeam.SetGenYs()
-    myBeam.SetGenYPs()
-    myBeam.SetGenZs()
-    myBeam.SetGenZPs()
-
-    myNumCPU=10
-    myBeam.SetParaNumCPU(myNumCPU)
-    mpNumPart=myBeam.ParaAllocationBeamGen()
-
-    with mp.Pool(myNumCPU) as p:
-        mpPart=p.map(myBeam.BeamGen,mpNumPart)
-    part=np.hstack(mpPart)
-    myBeam.BeamSet(part)
-    myBeam.BeamTrans()
-
-    myBeam.SetWeighGrid3D(5,6,7)
-    myBeam.SetWeighFreq(162.5)
-    myBeam.SetWeighBoundaryX(50)
-    myBeam.SetWeighBoundaryY(50)
-
-    myBeam.WeighUpdateBoundaryZ()
-    myBeam.BeamLoss()
-
-
-    mpWeighPart=myBeam.ParaAllocationBeamWeigh()
-
-
-    with mp.Pool(myNumCPU) as p:
-        mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
-    
-    weighGridSparse=np.hstack(mpWeighGridSparse)
-
-    weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX,myBeam.weighGridY*myBeam.weighGridZ)).toarray().reshape((myBeam.weighGridX,myBeam.weighGridY,myBeam.weighGridZ))
-
-    print(np.sum(weighGrid))
-    print(np.min(weighGrid))
-
-    '''　# Test XY 平面
-    fig = plt.figure('testXY')
-    ax = Axes3D(fig)
-    for iPage in range(myBeam.weighGridZ):
-        ax.clear()
-        ax.set_title(iPage)
-        
-        X = np.linspace(myBeam.weighXmin,myBeam.weighXmax, myBeam.weighGridX)
-        Y = np.linspace(myBeam.weighYmin,myBeam.weighYmax, myBeam.weighGridY)
-        Y,X = np.meshgrid(Y,X)
-        Z = weighGrid[:,:,iPage]
-
-
-        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet,
-            linewidth=0, antialiased=False)
-
-        plt.pause(0.01)
-
-    '''
-
-    '''　# Test XZ 平面
-    fig = plt.figure('testXZ')
-    ax = Axes3D(fig)
-    for iCol in range(myBeam.weighGridY):
-        ax.clear()
-        ax.set_title(iCol)
-        
-        X = np.linspace(myBeam.weighXmin,myBeam.weighXmax, myBeam.weighGridX)
-        Z = np.linspace(myBeam.weighZmin,myBeam.weighZmax, myBeam.weighGridZ)
-        Z,X = np.meshgrid(Z,X)
-        Y = weighGrid[:,iCol,:]
-
-
-        surf = ax.plot_surface(X, Z, Y, rstride=1, cstride=1, cmap=cm.jet,
-            linewidth=0, antialiased=False)
-
-        plt.pause(0.01)
-
-    '''        
-
-    '''　# Test YZ 平面
-    fig = plt.figure('testYZ')
-    ax = Axes3D(fig)
-    for iRow in range(myBeam.weighGridX):
-        ax.clear()
-        ax.set_title(iRow)
-        
-        Y = np.linspace(myBeam.weighYmin,myBeam.weighYmax, myBeam.weighGridY)
-        Z = np.linspace(myBeam.weighZmin,myBeam.weighZmax, myBeam.weighGridZ)
-        Z,Y = np.meshgrid(Z,Y)
-        X = weighGrid[iRow,:,:]
-
-
-        surf = ax.plot_surface(Y, Z, X, rstride=1, cstride=1, cmap=cm.jet,
-            linewidth=0, antialiased=False)
-
-        plt.pause(0.01)
-
-    '''  
-    """       
-
-    ##-----------------------------------------------------------------------------------
 
 
     myBeam.SetNumPart(12345)
@@ -1872,9 +1274,9 @@ if __name__=="__main__":
     myBeam.SetGenTwissBetaY(1)
     myBeam.SetGenTwissAlphaZ(0)
     myBeam.SetGenTwissBetaZ(0.05)
-    myBeam.SetGenEmitNormX(1.22)
-    myBeam.SetGenEmitNormY(1.22)
-    myBeam.SetGenEmitNormZ(1.25)
+    myBeam.SetGenEmitNormX(0.22)
+    myBeam.SetGenEmitNormY(0.22)
+    myBeam.SetGenEmitNormZ(0.025)
 
     myBeam.SetGenXs()
     myBeam.SetGenXPs()
@@ -1911,11 +1313,15 @@ if __name__=="__main__":
     weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX+2,(myBeam.weighGridY+2)*(myBeam.weighGridZ+2))).toarray().reshape((myBeam.weighGridX+2,myBeam.weighGridY+2,myBeam.weighGridZ+2))[1:myBeam.weighGridX+1,1:myBeam.weighGridY+1,1:myBeam.weighGridZ+1]
     myBeam.BeamGridSet(weighGrid)
 
+    weighGridPart=weighGrid  #
+
     mpWeighGridOnZ=myBeam.ParaAllocationBeamGridOnZ()
     with mp.Pool(myNumCPU) as p:
         weighGridOnZ=p.map(myBeam.BeamFFTxy,mpWeighGridOnZ)
     weighGrid=np.dstack(weighGridOnZ)
     myBeam.BeamGridSet(weighGrid)
+
+    weighGridXY=weighGrid  #
 
 
     myBeam.FFTEigens()
@@ -1932,8 +1338,7 @@ if __name__=="__main__":
         weighGridOnZ=p.map(myBeam.BeamFFTxyInv,mpWeighGridOnZ)
     weighGridU=np.dstack(weighGridOnZ)
 
-    print(np.shape(weighGridU))
-
+    '''
     fig=plt.figure('x-y')
     ax=Axes3D(fig)
     for i in range(myBeam.weighGridZ):
@@ -1949,9 +1354,24 @@ if __name__=="__main__":
             linewidth=0, antialiased=False)
 
         plt.pause(0.01)
+    '''
+    
+    fig=plt.figure('x-z')
+    ax=Axes3D(fig)
+    for i in range(myBeam.weighGridY):
+        ax.clear()
+        ax.set_title(i)
 
+        X = np.linspace(myBeam.weighXmin,myBeam.weighXmax, myBeam.weighGridX)
+        Z = np.linspace(myBeam.weighZmin,myBeam.weighZmax, myBeam.weighGridZ)
+        Z,X = np.meshgrid(Z,X)
+        Y=weighGridU[:,i,:]
+        
+        surf = ax.plot_surface(X, Z,Y, rstride=1, cstride=1, cmap=cm.jet,
+            linewidth=0, antialiased=False)
 
-
+        plt.pause(0.01)
+    
 
 
 
