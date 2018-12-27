@@ -490,10 +490,11 @@ class Beam():
 
 
         self.m=np.ones_like(self.x)*self.genBeamMass
-        self.q=np.ones_like(self.x)*self.genBeamCharge
+        self.q=np.ones_like(self.x)*(self.genBeamCurrent/self.genFreq/np.float(self.numPart))
+        self.qState=np.ones_like(self.x)*self.genBeamCharge
         self.loss=np.ones_like(self.x)*np.nan
 
-        return([self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.loss])
+        return([self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.qState,self.loss])
 
 
 
@@ -792,7 +793,7 @@ class Beam():
     ## 往程序内部 set 束流分布
     #########################################################
     def BeamSet(self,part):         # 函数接口：　网程序内部　set　束流分布
-        self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.loss=part[0,:],part[1,:],part[2,:],part[3,:],part[4,:],part[5,:],part[6,:],part[7,:],part[8,:]
+        self.x,self.px,self.y,self.py,self.z,self.pz,self.m,self.q,self.qState,self.loss=part[0,:],part[1,:],part[2,:],part[3,:],part[4,:],part[5,:],part[6,:],part[7,:],part[8,:],part[9,:]
 
 
 
@@ -1053,7 +1054,7 @@ class Beam():
         col=np.hstack((col111,col112,col121,col122,col211,col212,col221,col222))
         data=np.hstack((data111,data112,data121,data122,data211,data212,data221,data222))
 
-        data/=(self.weighDeltaX*self.weighDeltaY*self.weighDeltaZrelative*1e-9)
+        data/=-(self.weighDeltaX*self.weighDeltaY*self.weighDeltaZrelative*1e-9*const.epsilon_0)
 
         #print(np.min(xF2),1.-np.min(xF2),np.min(np.min(xF2)),'hhh')
         #print(np.max(xF2))
@@ -1158,7 +1159,10 @@ class Beam():
     ##   FFT
     ####################################################################
     def BeamFFTxy(self,mpWeighGridOnZ):
+        tic=time.time()
         mpWeighGridOnZ=dstn(mpWeighGridOnZ,axes=[0,1],type=1,overwrite_x=True)
+        toc=time.time()
+        print(toc-tic)
         return mpWeighGridOnZ
 
     def BeamFFTxyInv(self,mpWeighGridOnZ):
@@ -1266,10 +1270,12 @@ if __name__=="__main__":
 
 
 
-    myBeam.SetNumPart(12345)
+    myBeam.SetNumPart(123)
     myBeam.SetAMU(938.272)
     myBeam.SetGenBeamMass(1)
     myBeam.SetGenBeamCharge(1)
+    myBeam.SetGenBeamCurrent(10)
+    myBeam.SetGenFreq(162.5)
     myBeam.SetGenBeamDist('W6d')
     myBeam.SetGenEs(0.035)
     myBeam.SetGenTwissAlphaX(-1)
@@ -1280,7 +1286,7 @@ if __name__=="__main__":
     myBeam.SetGenTwissBetaZ(0.05)
     myBeam.SetGenEmitNormX(0.22)
     myBeam.SetGenEmitNormY(0.22)
-    myBeam.SetGenEmitNormZ(0.025)
+    myBeam.SetGenEmitNormZ(0.25)
 
     myBeam.SetGenXs()
     myBeam.SetGenXPs()
@@ -1290,6 +1296,7 @@ if __name__=="__main__":
     myBeam.SetGenZPs()
 
     myNumCPU=10
+    
     myBeam.SetParaNumCPU(myNumCPU)
 
     mpNumPart=myBeam.ParaAllocationBeamGen()
@@ -1299,7 +1306,7 @@ if __name__=="__main__":
     myBeam.BeamSet(part)
     myBeam.BeamTrans()
 
-    myBeam.SetWeighGrid3D(5,6,7)
+    myBeam.SetWeighGrid3D(7,7,7)
     myBeam.SetWeighFreq(162.5)
     myBeam.SetWeighBoundaryX(50)
     myBeam.SetWeighBoundaryY(50)
@@ -1309,23 +1316,28 @@ if __name__=="__main__":
 
     myBeam.FFTEigenInitialize()
 
-
+    tic_0=time.time()
     mpWeighPart=myBeam.ParaAllocationBeamWeigh()
+    
     with mp.Pool(myNumCPU) as p:
         mpWeighGridSparse=p.map(myBeam.BeamWeigh,mpWeighPart)
+    tic_1=time.time()
     weighGridSparse=np.hstack(mpWeighGridSparse)
     weighGrid=sparse.coo_matrix((weighGridSparse[2],(weighGridSparse[0],weighGridSparse[1])),shape=(myBeam.weighGridX+2,(myBeam.weighGridY+2)*(myBeam.weighGridZ+2))).toarray().reshape((myBeam.weighGridX+2,myBeam.weighGridY+2,myBeam.weighGridZ+2))[1:myBeam.weighGridX+1,1:myBeam.weighGridY+1,1:myBeam.weighGridZ+1]
     myBeam.BeamGridSet(weighGrid)
+    tic_2=time.time()
+    #print(tic_1-tic_0,tic_2-tic_1)
 
-    weighGridPart=weighGrid  #
-
+    tic_3=time.time()
     mpWeighGridOnZ=myBeam.ParaAllocationBeamGridOnZ()
+    tic_4=time.time()
     with mp.Pool(myNumCPU) as p:
         weighGridOnZ=p.map(myBeam.BeamFFTxy,mpWeighGridOnZ)
+    tic_5=time.time()
     weighGrid=np.dstack(weighGridOnZ)
     myBeam.BeamGridSet(weighGrid)
-
-    weighGridXY=weighGrid  #
+    tic_6=time.time()
+    print(tic_4-tic_3,tic_5-tic_4,tic_6-tic_5)
 
 
     myBeam.FFTEigens()
@@ -1340,7 +1352,18 @@ if __name__=="__main__":
     mpWeighGridOnZ=myBeam.ParaAllocationBeamGridOnZ()
     with mp.Pool(myNumCPU) as p:
         weighGridOnZ=p.map(myBeam.BeamFFTxyInv,mpWeighGridOnZ)
-    weighGridU=np.dstack(weighGridOnZ)
+    gridU=np.dstack(weighGridOnZ)
+
+    gridE=np.gradient(gridU)
+    #gridEx=gridE[0]/
+    
+
+    toc=time.time()-tic_0
+    print(toc)
+    
+
+
+
 
     '''
     fig=plt.figure('x-y')
@@ -1359,7 +1382,7 @@ if __name__=="__main__":
 
         plt.pause(0.01)
     '''
-    
+    '''
     fig=plt.figure('x-z')
     ax=Axes3D(fig)
     for i in range(myBeam.weighGridY):
@@ -1375,7 +1398,7 @@ if __name__=="__main__":
             linewidth=0, antialiased=False)
 
         plt.pause(0.01)
-    
+    '''
 
 
 

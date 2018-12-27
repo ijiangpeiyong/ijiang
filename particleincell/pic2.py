@@ -761,7 +761,7 @@ class Beam():
             cov=self.GetStatBeamCov(['y','yp'])
 
         emitNature=np.sqrt(np.linalg.det(cov))
-        gamma=cov[1,1]/emitNature
+q        gamma=cov[1,1]/emitNature
 
         return gamma 
 
