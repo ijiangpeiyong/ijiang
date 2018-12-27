@@ -43,6 +43,10 @@ class Beam():
     def SetGenBeamCharge(self,genBeamCharge=1.):
         self.genBeamCharge=genBeamCharge    
 
+    def SetGenBeamCurrent(self,genBeamCurrent=10.):    # mA
+        self.genBeamCurrent=genBeamCurrent/1000.    # A
+        
+
 
     #---------------------------------------------------
     def SetGenFreq(self,genFreq):    # 束流的基础频率，通常用于计算束团长度 MHz
