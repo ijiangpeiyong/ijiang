@@ -2,8 +2,6 @@
 
 int main()
 {
-
-        printf("END.\n");
-
+printf("END.\n");
     return 0;
 }

@@ -8,7 +8,7 @@ def calculate(vector, matrix = None):
     return v
 
 if __name__ == '__main__':
-    N = np.int(1e6)
+    N = np.int(1e5)
     matrix = sp.rand(N, N, density = 1e-5, format = 'csr')
     t = time.time()
     res = []
