@@ -1,12 +1,14 @@
 
-//rm *o; pgc++ -fast -Minfo==accel -ta=nvidia myCode5.cpp -o o; ./o
+//cd /home/pyong/ijiang/cpp/; rm *o; g++ -fopenmp myCode6.cpp -o o; ./o
 
-// gpu p2000 0.82s
+// omp  １００００ ~ 3.1５s　　　全速１２　ｃｐｕ
+//                          1 cpu   15.8s       １２ｃｐｕ对应５倍提速
+
 
 #include <iostream>
 #include <vector>
 #include <time.h>
-#include <openacc.h>
+#include <omp.h>
 #include <fstream>
 
 using namespace std;
@@ -47,44 +49,43 @@ int main()
     time_t t1, t2;
 
     t1 = clock();
+    double start = omp_get_wtime();
 
-#pragma acc data copy(A)
-#pragma acc kernels
-#pragma acc loop independent device_type(nvidia) gang worker(4)
+#pragma omp parallel for
+
     for (int iI = 1; iI < 10000; iI++)
     {
-
-#pragma acc loop independent device_type(nvidia) vector(512)
+        for (int iM = 1; iM < M - 1; iM++)
         {
-            for (int iM = 1; iM < M - 1; iM++)
-            {
 
-                for (int iN = 1; iN < N - 1; iN++)
+            for (int iN = 1; iN < N - 1; iN++)
+            {
+                for (int iL = 1; iL < L - 1; iL++)
                 {
-                    for (int iL = 1; iL < L - 1; iL++)
-                    {
-                        A[iM][iN][iL] = (A[iM + 1][iN][iL] + A[iM - 1][iN][iL] + A[iM][iN + 1][iL] + A[iM][iN - 1][iL] + A[iM][iN][iL + 1] + A[iM][iN][iL - 1]) / 6.;
-                    }
+                    A[iM][iN][iL] = (A[iM + 1][iN][iL] + A[iM - 1][iN][iL] + A[iM][iN + 1][iL] + A[iM][iN - 1][iL] + A[iM][iN][iL + 1] + A[iM][iN][iL - 1]) / 6.;
                 }
             }
+        }
 
-            for (int iM = 1; iM < M - 1; iM++)
+        for (int iM = 1; iM < M - 1; iM++)
+        {
+            for (int iN = 1; iN < N - 1; iN++)
             {
-                for (int iN = 1; iN < N - 1; iN++)
-                {
 
-                    A[iM][iN][0] = A[iM][iN][L - 2];
-                    A[iM][iN][L - 1] = A[iM][iN][1];
-                }
+                A[iM][iN][0] = A[iM][iN][L - 2];
+                A[iM][iN][L - 1] = A[iM][iN][1];
             }
         }
     }
 
+    double end = omp_get_wtime();
     t2 = clock();
 
     double dt = (double)(t2 - t1) / CLOCKS_PER_SEC;
 
-    cout << "TIME: " << dt << endl;
+    cout << "TIME: " << dt << "  ~~~  " << end - start << endl;
+
+    cout << "TIME: " << dt << "  ~~~  " << endl;
 
     ofstream myFile("pic3d");
 
