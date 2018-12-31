@@ -1,0 +1,27 @@
+ubuntu利用conda创建虚拟环境，并安装cuda，cudnn，pytorch
+2018年05月15日 12:39:08 kaixinjiuxing666 阅读数：3493
+cd到安装包所在目录，安装：bash Anaconda3-5.1.0-Linux-x86_64.sh
+
+创建虚拟环境：conda create -n your_env_name python=3.6
+
+激活虚拟环境：source activate your_env_name
+
+添加conda国内镜像：
+
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
+conda config --set show_channel_urls yes
+安装cuda:conda install cudatoolkit=8.0 -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64/
+
+安装cudnn:conda install cudnn=7.0.5 -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/linux-64/
+
+注：
+
+安装conda完成后，输入conda list,若出现未找到命令，则需修改环境变量：export PATH=~/anaconda3/bin:$PATH（此法每次开机后都要修改，也可修改配置文件永久生效）
+
+每个不同镜像网站里面包含各种不同的下载包，可根据自己的需求打开查找对应的安装包，
+
+如cudatoolkit 8.0.3 在https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64/内，
+
+则安装命令如：conda install cudatoolkit=8.0 -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/linux-64/ 即可。
