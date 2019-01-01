@@ -23,4 +23,4 @@ def main():
     print("vectorAdd took %f seconds " % vectorAdd_time)
 
 if __name__ == '__main__':
-    main()onda install cudatoolkit=8
+    main()
