@@ -3,7 +3,7 @@ import numba as nb
 import time
 from scipy.fftpack import dstn, idstn,fft,ifft
 
-num=128
+num=64
 
 
 data=np.random.random((num,num,num))
